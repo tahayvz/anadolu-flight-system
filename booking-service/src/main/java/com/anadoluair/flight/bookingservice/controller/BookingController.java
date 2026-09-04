@@ -96,7 +96,7 @@ public class BookingController {
     @ApiResponse(responseCode = "200", description = "List of bookings for the flight")
     @GetMapping("/flight/{flightNumber}")
     public ResponseEntity<List<BookingResponse>> getBookingsForFlight(
-            @Parameter(description = "Flight number", example = "TK1")
+            @Parameter(description = "Flight number", example = "ZZ1")
             @PathVariable String flightNumber,
             @Parameter(description = "Flight date", example = "2024-06-15")
             @RequestParam LocalDate date) {

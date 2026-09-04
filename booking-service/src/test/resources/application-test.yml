@@ -52,3 +52,13 @@ resilience4j:
 logging:
   level:
     com.anadoluair.flight: DEBUG
+
+# flight-ops-service TESTTE ERISILEMEZ bir adrese bakar.
+#
+# Varsayilan localhost:8082'ydi. Gelistiricinin makinesinde `docker compose up`
+# ile flight-ops ayaktaysa testler GERCEK servise gidiyor, degilse devre kesici
+# fallback'ine dusuyordu. Yani ayni testin sonucu "o an hangi konteyner acik"
+# sorusuna bagliydi: yerelde kirmizi, CI'da yesil. Sabit ve erisilemez bir port
+# vererek her ortamda AYNI yolun (fallback) calismasi garanti ediliyor.
+flight-ops:
+  base-url: http://localhost:1

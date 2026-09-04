@@ -63,7 +63,7 @@ public class FlightService {
 
         Flight flight = new Flight();
         flight.setFlightNumber(request.getFlightNumber());
-        flight.setAirline("TK");
+        flight.setAirline("ZZ");
         flight.setOrigin("IST");
         flight.setDestination("JFK");
 
@@ -112,7 +112,7 @@ public class FlightService {
                 .timestamp(LocalDateTime.now())
                 .flightData(FlightEvent.FlightData.builder()
                         .flightNumber(flightNumber)
-                        .airline("TK")
+                        .airline("ZZ")
                         .status(mapToEventStatus(status))
                         .build())
                 .build();
@@ -130,7 +130,7 @@ public class FlightService {
                 .timestamp(LocalDateTime.now())
                 .flightData(FlightEvent.FlightData.builder()
                         .flightNumber(flightNumber)
-                        .airline("TK")
+                        .airline("ZZ")
                         .origin("IST")
                         .destination("JFK")
                         .status(FlightEvent.FlightStatus.SCHEDULED)
@@ -164,7 +164,7 @@ public class FlightService {
 
         // Generate 3 sample flights
         String[] times = {"08:00", "14:30", "20:45"};
-        String[] flightNumbers = {"TK1", "TK7", "TK11"};
+        String[] flightNumbers = {"ZZ1", "ZZ7", "ZZ11"};
 
         for (int i = 0; i < 3; i++) {
             Flight flight = new Flight();

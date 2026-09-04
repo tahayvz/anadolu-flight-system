@@ -36,7 +36,7 @@ public class FlightEvent {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FlightData {
-        private String flightNumber;      // TK1234
+        private String flightNumber;      // ZZ1234
         private String airline;            // TK
         private String origin;             // IST
         private String destination;        // JFK

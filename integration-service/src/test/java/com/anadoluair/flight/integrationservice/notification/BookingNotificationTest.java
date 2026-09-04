@@ -25,7 +25,7 @@ class BookingNotificationTest {
                 .timestamp(LocalDateTime.of(2026, 1, 15, 10, 0))
                 .bookingData(BookingEvent.BookingData.builder()
                         .bookingReference("ABC123")
-                        .flightNumber("AA1234")
+                        .flightNumber("ZZ1234")
                         .flightDate(LocalDateTime.of(2026, 2, 1, 14, 30))
                         .status(BookingEvent.BookingStatus.CONFIRMED)
                         .totalAmount(new BigDecimal("2450.00"))
@@ -59,7 +59,7 @@ class BookingNotificationTest {
 
         assertThat(notification.body())
                 .contains("ABC123")
-                .contains("AA1234")
+                .contains("ZZ1234")
                 .contains("2026-02-01")
                 .contains("2450.00")
                 .contains("TRY");

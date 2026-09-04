@@ -10,7 +10,9 @@ A microservices flight booking platform: reservations, flight operations, extern
 integration and an API gateway, wired together with Kafka, a Saga orchestrator and Redis.
 
 > **Anadolu Air is fictional.** The airline, its flights and its data are invented for
-> this project. Nothing here is affiliated with any real carrier.
+> this project. Nothing here is affiliated with any real carrier. Flight numbers use the
+> placeholder designator `ZZ` for the same reason — a real two-letter code would name a
+> real airline.
 
 The interesting part is not that it books flights — it is what happens when a booking
 touches four services and one of them fails. That is what the Saga orchestrator, the
@@ -320,7 +322,7 @@ Manages distributed transactions with compensating actions. State is persisted i
 ```
 saga:{sagaId}              → Saga state JSON
 saga:pnr:{PNR}             → sagaId (lookup by PNR)
-saga:flight:{TK123}:{date} → Set of sagaIds
+saga:flight:{ZZ123}:{date} → Set of sagaIds
 saga:active                → Active saga IDs
 saga:failed                → Failed saga IDs
 saga:compensating          → Compensating saga IDs
@@ -824,7 +826,7 @@ curl -X POST http://localhost:8080/api/bookings \
   -H "Content-Type: application/json" \
   -H "X-API-Key: anadolu-api-key-2024" \
   -d '{
-    "flightNumber": "TK1",
+    "flightNumber": "ZZ1",
     "flightDate": "2026-02-15",
     "passengers": [
       {
@@ -982,7 +984,7 @@ docker compose stop flight-ops-service
 # Attempt booking - should get fallback response
 curl -X POST http://localhost:8080/api/bookings \
   -H "Content-Type: application/json" \
-  -d '{"flightNumber": "TK1", ...}'
+  -d '{"flightNumber": "ZZ1", ...}'
 
 # Circuit breaker metrics
 curl http://localhost:8083/actuator/metrics/resilience4j.circuitbreaker.state
@@ -1175,7 +1177,7 @@ curl -X POST http://localhost:8083/actuator/circuitbreakers/flightOps/reset
 **"Check-in not allowed: Not within 24-hour check-in window"**
 ```bash
 # Check flight schedule
-curl http://localhost:8082/api/flights/TK1
+curl http://localhost:8082/api/flights/ZZ1
 
 # Ensure flight departs within 24 hours
 ```

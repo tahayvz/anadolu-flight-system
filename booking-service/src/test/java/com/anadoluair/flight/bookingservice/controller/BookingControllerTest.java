@@ -44,7 +44,7 @@ class BookingControllerTest extends AbstractBookingTest {
         doNothing().when(bookingEventProducer).publishBookingEvent(any(BookingEvent.class));
 
         BookingRequest request = BookingRequest.builder()
-                .flightNumber("TK1")
+                .flightNumber("ZZ1")
                 .flightDate(LocalDate.now().plusDays(7))
                 .contactEmail("test@example.com")
                 .contactPhone("+905551234567")
@@ -65,7 +65,7 @@ class BookingControllerTest extends AbstractBookingTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.bookingReference").exists())
                 .andExpect(jsonPath("$.bookingReference").isString())
-                .andExpect(jsonPath("$.flightNumber").value("TK1"))
+                .andExpect(jsonPath("$.flightNumber").value("ZZ1"))
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andExpect(jsonPath("$.passengers").isArray())
                 .andExpect(jsonPath("$.passengers[0].firstName").value("John"));
@@ -125,7 +125,7 @@ class BookingControllerTest extends AbstractBookingTest {
 
         // 1. Create booking for a flight 7 days from now
         BookingRequest request = BookingRequest.builder()
-                .flightNumber("TK7")
+                .flightNumber("ZZ7")
                 .flightDate(LocalDate.now().plusDays(7))
                 .contactEmail("lifecycle@test.com")
                 .contactPhone("+905559876543")
@@ -171,7 +171,7 @@ class BookingControllerTest extends AbstractBookingTest {
 
         // Create booking for flight in 5 days
         BookingRequest request = BookingRequest.builder()
-                .flightNumber("TK1951")
+                .flightNumber("ZZ1951")
                 .flightDate(LocalDate.now().plusDays(5))
                 .contactEmail("early@test.com")
                 .contactPhone("+905551112233")

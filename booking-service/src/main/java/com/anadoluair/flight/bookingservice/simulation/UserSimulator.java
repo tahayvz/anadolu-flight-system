@@ -44,7 +44,7 @@ public class UserSimulator {
     private final Random random = new Random();
 
     // Tüm uçuşları kullan (flight-ops'ta mevcut)
-    private static final String[] FLIGHTS = {"TK1", "TK7", "TK11", "TK77", "TK123", "TK1984", "TK2001", "TK2010", "TK2020"};
+    private static final String[] FLIGHTS = {"ZZ1", "ZZ7", "ZZ11", "ZZ77", "ZZ123", "ZZ1984", "ZZ2001", "ZZ2010", "ZZ2020"};
     private static final String[] FIRST_NAMES = {"Ahmet", "Mehmet", "Ali", "Ayse", "Fatma", "Zeynep", "Mustafa", "Emine", "Hasan", "Huseyin"};
     private static final String[] LAST_NAMES = {"Yilmaz", "Kaya", "Demir", "Celik", "Sahin", "Yildiz", "Ozturk", "Aydin", "Ozdemir", "Arslan"};
     private static final String[] DOMAINS = {"gmail.com", "hotmail.com", "yahoo.com", "outlook.com"};

@@ -38,7 +38,7 @@ class EmailNotificationSenderTest {
 
     private BookingNotification notification(String recipient) {
         return new BookingNotification(recipient, "E-biletiniz hazir - ABC123",
-                "Rezervasyon kodu : ABC123\nUcus             : AA1234\n");
+                "Rezervasyon kodu : ABC123\nUcus             : ZZ1234\n");
     }
 
     @Test
@@ -52,7 +52,7 @@ class EmailNotificationSenderTest {
         assertThat(received).hasSize(1);
         assertThat(received[0].getSubject()).isEqualTo("E-biletiniz hazir - ABC123");
         assertThat(received[0].getAllRecipients()[0].toString()).isEqualTo("yolcu@ornek.example");
-        assertThat(received[0].getContent().toString()).contains("ABC123").contains("AA1234");
+        assertThat(received[0].getContent().toString()).contains("ABC123").contains("ZZ1234");
     }
 
     @Test

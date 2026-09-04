@@ -31,28 +31,28 @@ public class FlightDataInitializer implements CommandLineRunner {
         // Define realistic outbound routes with durations
         // IST = İstanbul Havalimanı (Istanbul Airport)
         List<FlightRoute> outboundRoutes = List.of(
-                new FlightRoute("TK1", "IST", "JFK", 11, "Boeing 777-300ER", 350),
-                new FlightRoute("TK7", "IST", "LHR", 4, "Airbus A350-900", 325),
-                new FlightRoute("TK11", "IST", "CDG", 3, "Airbus A321neo", 182),
-                new FlightRoute("TK77", "IST", "FRA", 3, "Boeing 737-900ER", 175),
-                new FlightRoute("TK123", "IST", "DXB", 4, "Airbus A330-300", 289),
-                new FlightRoute("TK1984", "IST", "SIN", 10, "Boeing 787-9", 270),
-                new FlightRoute("TK2001", "IST", "ESB", 1, "Airbus A320neo", 180),
-                new FlightRoute("TK2010", "IST", "AYT", 1, "Boeing 737-800", 189),
-                new FlightRoute("TK2020", "IST", "ADB", 1, "Airbus A321neo", 182)
+                new FlightRoute("ZZ1", "IST", "JFK", 11, "Boeing 777-300ER", 350),
+                new FlightRoute("ZZ7", "IST", "LHR", 4, "Airbus A350-900", 325),
+                new FlightRoute("ZZ11", "IST", "CDG", 3, "Airbus A321neo", 182),
+                new FlightRoute("ZZ77", "IST", "FRA", 3, "Boeing 737-900ER", 175),
+                new FlightRoute("ZZ123", "IST", "DXB", 4, "Airbus A330-300", 289),
+                new FlightRoute("ZZ1984", "IST", "SIN", 10, "Boeing 787-9", 270),
+                new FlightRoute("ZZ2001", "IST", "ESB", 1, "Airbus A320neo", 180),
+                new FlightRoute("ZZ2010", "IST", "AYT", 1, "Boeing 737-800", 189),
+                new FlightRoute("ZZ2020", "IST", "ADB", 1, "Airbus A321neo", 182)
         );
 
         // Define inbound routes so "Arrivals" board has live data as well
         List<FlightRoute> inboundRoutes = List.of(
-                new FlightRoute("TK2", "JFK", "IST", 11, "Boeing 777-300ER", 350),
-                new FlightRoute("TK8", "LHR", "IST", 4, "Airbus A350-900", 325),
-                new FlightRoute("TK12", "CDG", "IST", 3, "Airbus A321neo", 182),
-                new FlightRoute("TK78", "FRA", "IST", 3, "Boeing 737-900ER", 175),
-                new FlightRoute("TK124", "DXB", "IST", 4, "Airbus A330-300", 289),
-                new FlightRoute("TK1985", "SIN", "IST", 10, "Boeing 787-9", 270),
-                new FlightRoute("TK2002", "ESB", "IST", 1, "Airbus A320neo", 180),
-                new FlightRoute("TK2011", "AYT", "IST", 1, "Boeing 737-800", 189),
-                new FlightRoute("TK2021", "ADB", "IST", 1, "Airbus A321neo", 182)
+                new FlightRoute("ZZ2", "JFK", "IST", 11, "Boeing 777-300ER", 350),
+                new FlightRoute("ZZ8", "LHR", "IST", 4, "Airbus A350-900", 325),
+                new FlightRoute("ZZ12", "CDG", "IST", 3, "Airbus A321neo", 182),
+                new FlightRoute("ZZ78", "FRA", "IST", 3, "Boeing 737-900ER", 175),
+                new FlightRoute("ZZ124", "DXB", "IST", 4, "Airbus A330-300", 289),
+                new FlightRoute("ZZ1985", "SIN", "IST", 10, "Boeing 787-9", 270),
+                new FlightRoute("ZZ2002", "ESB", "IST", 1, "Airbus A320neo", 180),
+                new FlightRoute("ZZ2011", "AYT", "IST", 1, "Boeing 737-800", 189),
+                new FlightRoute("ZZ2021", "ADB", "IST", 1, "Airbus A321neo", 182)
         );
 
         // Create outbound flights with staggered departure times
