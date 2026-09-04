@@ -45,6 +45,7 @@ It has not run in production and is not a finished product.
 9. [API Documentation](#api-documentation)
 10. [Business Rules](#business-rules)
 11. [Testing](#testing)
+- [AI Assistant](#ai-assistant)
 12. [Monitoring & Observability](#monitoring--observability)
 13. [Debugging](#debugging)
 14. [Docker Commands Reference](#docker-commands-reference)
@@ -991,6 +992,86 @@ curl http://localhost:8083/actuator/metrics/resilience4j.circuitbreaker.state
 ```
 
 ---
+
+## AI Assistant
+
+`ai-assistant-service` (port 8084) answers questions about flights and bookings by
+**calling the other services**. A model cannot run anything on its own — it only
+produces text. The service reads that text and does the work:
+
+```
+1. send the conversation + the list of available tools to the model
+2. model replies "call flight_status with ZZ123"
+3. we call flight-ops ourselves
+4. feed the result back into the conversation
+5. model now has the facts and writes the answer
+```
+
+That loop lives in [`Agent.java`](ai-assistant-service/src/main/java/com/anadoluair/flight/assistant/agent/Agent.java)
+and is about sixty lines. No AI framework is used. The point was to understand the
+mechanism rather than configure it — and it keeps the service on Spring Boot 3.2,
+which Spring AI 1.0 would have forced up to 3.4.
+
+Three tools are exposed to the model: `flight_status`, `flight_bookable` and
+`booking_lookup`. Each one is a call into a service that already existed.
+
+### It runs with no setup
+
+The default model is a **stub**: no API key, no network, no model download.
+`docker compose up` and the whole flow works end to end. That is also what CI runs
+against — a real model would make every test a coin toss, since the same question
+does not produce the same answer twice.
+
+To use a real model, name it in the request:
+
+```bash
+# Default. Works immediately after cloning.
+curl -X POST localhost:8084/api/assistant/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "ZZ123 rezervasyona açık mı?"}'
+
+# Ollama, if you run one locally
+curl ... -d '{"question": "...", "model": "ollama"}'
+
+# Gemini. The key travels in a header, never in the URL.
+curl -X POST localhost:8084/api/assistant/ask \
+  -H 'Content-Type: application/json' \
+  -H 'X-Model-Api-Key: <your key from aistudio.google.com>' \
+  -d '{"question": "...", "model": "gemini"}'
+```
+
+`GET /api/assistant/models` lists the models and says which of them needs a key —
+the web client builds its model picker from that.
+
+### What the code is careful about
+
+**The key is never written down.** It arrives in a header rather than a query
+string, because URLs end up in access logs, error traces and proxy records while
+headers do not. It is held for the duration of one call and stored nowhere. A test
+scans the entire response body and every response header for it.
+
+**The loop cannot run forever.** A model can keep asking for the same tool. Without
+a turn limit the request never returns and each turn fires another HTTP call at the
+services behind it. The limit is configurable and pinned by a test.
+
+**A failing tool does not sink the answer.** If the model invents a tool that does
+not exist, or a service is down, the failure is described back to the model in
+words and the loop continues. Both paths are tested.
+
+**The answer shows its work.** Every response carries a `steps` array listing the
+tools that were called and what they returned. Without it, a wrong answer is
+untraceable.
+
+### Tests
+
+18 tests, none of which touch a network or need a key:
+
+| Suite | What it pins down |
+|---|---|
+| `AgentTest` | The loop feeds tool results back, stops at the turn limit, and survives unknown or failing tools. The model is scripted, so what is measured is the loop, not the model. |
+| `ModelResponseParsingTest` | Recorded Ollama and Gemini response bodies parse correctly — including the case where Gemini returns explanatory text *and* a function call, where treating the text as the answer would silently skip the tool. |
+| `AssistantControllerTest` | The service works with zero configuration, rejects unknown models, and never leaks the API key into the response. |
+
 
 ## Monitoring & Observability
 

@@ -19,6 +19,7 @@
         <module>flight-ops-service</module>
         <module>booking-service</module>
         <module>api-gateway</module>
+        <module>ai-assistant-service</module>
     </modules>
 
     <parent>

@@ -180,6 +180,32 @@ services:
       retries: 5
       start_period: 60s
 
+  # AI Assistant - tool-calling agent over the flight services.
+  # Varsayilan model SAHTEDIR: bu servis anahtarsiz, internetsiz ayaga kalkar.
+  # Gercek model istiyorsan istekte model adini ve anahtarini gonder.
+  ai-assistant-service:
+    build:
+      context: .
+      dockerfile: ai-assistant-service/Dockerfile
+    container_name: anadolu-ai-assistant-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      FLIGHT_OPS_URL: http://flight-ops-service:8082
+      BOOKING_URL: http://booking-service:8083
+      # Ollama konteynerde degil, gelistiricinin makinesinde calisir.
+      OLLAMA_URL: http://host.docker.internal:11434
+    networks:
+      - anadolu-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
   # ============ MICROSERVICES ============
 
   # Integration Service - SOAP/XML Edge Layer

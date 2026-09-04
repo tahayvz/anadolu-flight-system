@@ -1,0 +1,46 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ai-assistant-service
+
+assistant:
+  # Varsayilan olarak SAHTE model kullanilir. Boylece depoyu indiren herkes
+  # uygulamayi API anahtari almadan, model indirmeden calistirabilir.
+  # Gercek model istiyorsan istekte "model": "gemini" gonder ve anahtarini ekle.
+  default-model: stub
+
+  # Agent'in bir soru icin atabilecegi en fazla adim sayisi. Model ayni araci
+  # tekrar tekrar isteyebilir; bu sinir olmazsa istek hic bitmez.
+  max-turns: 5
+
+  flight-ops:
+    base-url: ${FLIGHT_OPS_URL:http://localhost:8082}
+  booking:
+    base-url: ${BOOKING_URL:http://localhost:8083}
+
+  ollama:
+    base-url: ${OLLAMA_URL:http://localhost:11434}
+    model: ${OLLAMA_MODEL:qwen2.5:7b}
+
+  gemini:
+    base-url: https://generativelanguage.googleapis.com
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.anadoluair.flight.assistant: INFO

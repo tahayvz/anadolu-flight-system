@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [ api-gateway, booking-service, flight-ops-service, integration-service ]
+        service: [ api-gateway, booking-service, flight-ops-service, integration-service, ai-assistant-service ]
     steps:
       - uses: actions/checkout@v7
       # Imaj derlemesi, testlerin goremedigi kirilmalari yakalar: bir modul eklendiginde
