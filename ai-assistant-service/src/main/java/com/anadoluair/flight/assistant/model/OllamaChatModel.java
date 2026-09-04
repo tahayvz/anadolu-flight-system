@@ -20,7 +20,11 @@ import java.util.Map;
  * aracı çağırması gerekirken cevabı uydurabilir. Bu, bu kodun hatası değil, küçük
  * modellerin bilinen davranışıdır. Ciddi bir sonuç isteniyorsa Gemini kullanılmalı.
  */
-@Component
+// Bean adi ACIKCA veriliyor. Spring AI'in Ollama otomatik yapilandirmasi da
+// 'ollamaChatModel' adinda bir bean tanimliyor; sinif adimiz ayni oldugu icin
+// varsayilan bean adlari carpisiyor ve uygulama acilmiyordu:
+//   BeanDefinitionOverrideException: Invalid bean definition with name 'ollamaChatModel'
+@Component("ollamaHttpChatModel")
 public class OllamaChatModel implements ChatModel {
 
     private final RestClient client;
