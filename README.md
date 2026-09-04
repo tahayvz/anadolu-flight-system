@@ -25,7 +25,7 @@ It has not run in production and is not a finished product.
 | | |
 | --- | --- |
 | Services | api-gateway · booking · flight-ops · integration · shared-events |
-| Tests | 40 — see [Testing](#testing) |
+| Tests | 55 — see [Testing](#testing) |
 | Runs on | Docker Compose · Helm charts included for Kubernetes |
 
 ---
@@ -901,13 +901,15 @@ curl http://localhost:8082/api/flights
 
 ## Testing
 
-40 tests. The booking rules — the part with real business logic — are covered by 30 of
-them, and those run without Spring, a database or Kafka.
+55 tests. The parts with real logic — booking rules and notification content — are
+covered by 41 of them, and those run without Spring, a database or Kafka.
 
 | Suite | Count | Needs |
 | --- | ---: | --- |
 | `BookingRulesValidatorTest` | 30 | nothing — plain JUnit, fixed clock |
+| `BookingNotificationTest` | 11 | nothing — content generation only |
 | `BookingControllerTest` | 7 | Docker (Redis container) |
+| `EmailNotificationSenderTest` | 4 | nothing — GreenMail runs in-process |
 | Context tests (3 services) | 3 | Docker for booking-service |
 
 The rules were originally private methods inside `BookingService`, which meant answering
@@ -928,10 +930,30 @@ The second command runs the 30 rule tests in about 80 milliseconds.
 
 ### Known gaps
 
-- Coverage is concentrated in booking rules; the saga orchestrator and Kafka consumers
-  are exercised only indirectly
+- The saga orchestrator is exercised only indirectly
 - No end-to-end test spanning all four services
 - No load or failure-injection testing
+
+---
+
+## Notifications
+
+When a booking event lands, the integration service emails the passenger — a real message
+over SMTP, not a log line. Locally it goes to **MailHog**, which behaves like a mail
+server but keeps everything in a web inbox at `http://localhost:8025`, so nothing leaves
+the machine and you can see the result.
+
+The email address travels **inside the event**. The consumer never calls back into
+booking-service to look it up; a synchronous call there would reintroduce exactly the
+coupling the event-driven design removes.
+
+**A failed send does not fail the event.** The booking is valid; only the notification
+did not go out. Throwing would make Kafka redeliver the message and retry the same email
+indefinitely.
+
+Other outbound integrations a real airline would need — codeshare partners, a payment
+gateway for refunds, a Departure Control System, external seat maps — are out of scope
+and marked as such rather than stubbed with fake clients.
 
 ### Run Integration Tests (requires Docker)
 ```bash

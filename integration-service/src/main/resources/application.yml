@@ -2,6 +2,15 @@ server:
   port: 8081
 
 spring:
+  mail:
+    # Lokalde MailHog: gercek SMTP gibi davranir, postayi disari cikarmaz,
+    # http://localhost:8025 adresinde gosterir. Kimlik dogrulamasi istemez.
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
   application:
     name: integration-service
 
@@ -40,3 +49,7 @@ logging:
     com.anadoluair.flight: DEBUG
     org.springframework.kafka: INFO
     org.springframework.ws: DEBUG
+
+anadolu:
+  notification:
+    from: ${ANADOLU_NOTIFICATION_FROM:no-reply@anadoluair.example}

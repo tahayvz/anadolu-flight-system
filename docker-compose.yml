@@ -315,6 +315,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # MailHog — lokal SMTP yakalayici. Gercek bir posta sunucusu gibi davranir ama
+  # postayi disari GONDERMEZ; web arayuzunde gosterir. Bildirimlerin gercekten
+  # uretildigini gozle dogrulamayi saglar, kimseye posta gitmez.
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: anadolu-mailhog
+    ports:
+      - "1025:1025"   # SMTP  — uygulama buraya gonderir
+      - "8025:8025"   # Web   — http://localhost:8025
+    networks:
+      - anadolu-network
+    restart: unless-stopped
+
 networks:
   anadolu-network:
     driver: bridge

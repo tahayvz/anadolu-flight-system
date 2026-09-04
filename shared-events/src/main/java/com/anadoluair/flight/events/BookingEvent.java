@@ -45,6 +45,15 @@ public class BookingEvent {
         private BookingStatus status;
         private BigDecimal totalAmount;
         private String currency;
+
+        /**
+         * Yolcuyla iletisim kurulacak e-posta.
+         * <p>
+         * Olayin icinde tasinir; tuketici servis, gondermek icin booking-service'in
+         * veritabanina sormak zorunda kalmaz. Servisler arasi senkron cagri kurmak,
+         * event-driven mimarinin cozmeye calistigi bagimliligi geri getirirdi.
+         */
+        private String contactEmail;
     }
 
     @Data

@@ -409,6 +409,7 @@ public class BookingService {
                         .status(BookingEvent.BookingStatus.valueOf(booking.getStatus().name()))
                         .totalAmount(booking.getTotalAmount())
                         .currency(booking.getCurrency())
+                        .contactEmail(booking.getContactEmail())
                         .build())
                 .build();
     }
