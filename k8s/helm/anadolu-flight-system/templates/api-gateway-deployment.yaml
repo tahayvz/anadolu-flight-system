@@ -1,0 +1,97 @@
+{{- if .Values.apiGateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.apiGateway.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+    app.kubernetes.io/component: gateway
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.apiGateway.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+        app.kubernetes.io/component: gateway
+        {{- include "anadolu-flight-system.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: {{ include "anadolu-flight-system.serviceAccountName" . }}
+      {{- include "anadolu-flight-system.podSecurityContext" . | nindent 6 }}
+      containers:
+        - name: {{ .Values.apiGateway.name }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.apiGateway.image.repository }}:{{ .Values.apiGateway.image.tag }}"
+          imagePullPolicy: {{ .Values.apiGateway.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            {{- include "anadolu-flight-system.commonEnv" . | nindent 12 }}
+            - name: SERVER_PORT
+              value: "8080"
+          envFrom:
+            - configMapRef:
+                name: anadolu-common-config
+            - configMapRef:
+                name: api-gateway-config
+            - secretRef:
+                name: anadolu-api-secrets
+          resources:
+            {{- toYaml .Values.apiGateway.resources | nindent 12 }}
+          {{- include "anadolu-flight-system.containerSecurityContext" . | nindent 10 }}
+          {{- include "anadolu-flight-system.livenessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.readinessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.startupProbe" . | nindent 10 }}
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.apiGateway.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  type: {{ .Values.apiGateway.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+  ports:
+    - name: http
+      port: {{ .Values.apiGateway.service.port }}
+      targetPort: 8080
+      protocol: TCP
+{{- end }}

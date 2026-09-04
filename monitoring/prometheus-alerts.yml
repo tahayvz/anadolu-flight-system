@@ -1,0 +1,54 @@
+groups:
+  - name: service-alerts
+    rules:
+      # Servis down olduğunda
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} servisi down!"
+          description: "{{ $labels.job }} 30 saniyedir yanıt vermiyor."
+
+      # Yüksek response time (1 saniyeden fazla)
+      - alert: HighResponseTime
+        expr: rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m]) > 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} yavaş yanıt veriyor"
+          description: "{{ $labels.job }} ortalama response time 1 saniyenin üzerinde."
+
+      # Yüksek hata oranı (%5'ten fazla 5xx)
+      - alert: HighErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job) / sum(rate(http_server_requests_seconds_count[5m])) by (job) > 0.05
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} yüksek hata oranı"
+          description: "{{ $labels.job }} hata oranı %5'in üzerinde."
+
+      # JVM Memory yüksek (%90 üzeri)
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} yüksek memory kullanımı"
+          description: "{{ $labels.job }} heap memory %90'ın üzerinde."
+
+  - name: kafka-alerts
+    rules:
+      # Kafka consumer lag yüksek
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_fetch_manager_records_lag_max > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag yüksek"
+          description: "Consumer lag 1000'den fazla mesaj geride."

@@ -1,0 +1,87 @@
+{{- if .Values.flightOpsService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.flightOpsService.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+    app.kubernetes.io/component: backend
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.flightOpsService.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+        app.kubernetes.io/component: backend
+        {{- include "anadolu-flight-system.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: {{ include "anadolu-flight-system.serviceAccountName" . }}
+      {{- include "anadolu-flight-system.podSecurityContext" . | nindent 6 }}
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-kafka 9092; do echo waiting for kafka; sleep 2; done']
+      containers:
+        - name: {{ .Values.flightOpsService.name }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.flightOpsService.image.repository }}:{{ .Values.flightOpsService.image.tag }}"
+          imagePullPolicy: {{ .Values.flightOpsService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+          env:
+            {{- include "anadolu-flight-system.commonEnv" . | nindent 12 }}
+            - name: SERVER_PORT
+              value: "8082"
+          envFrom:
+            - configMapRef:
+                name: anadolu-common-config
+          resources:
+            {{- toYaml .Values.flightOpsService.resources | nindent 12 }}
+          {{- include "anadolu-flight-system.containerSecurityContext" . | nindent 10 }}
+          {{- include "anadolu-flight-system.livenessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.readinessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.startupProbe" . | nindent 10 }}
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.flightOpsService.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.flightOpsService.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+  ports:
+    - name: http
+      port: {{ .Values.flightOpsService.service.port }}
+      targetPort: 8082
+      protocol: TCP
+{{- end }}

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: anadolu-flight-system
+    app.kubernetes.io/part-of: anadolu-flight-system
+    environment: production

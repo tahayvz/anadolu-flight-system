@@ -1,0 +1,44 @@
+apiVersion: v2
+name: anadolu-flight-system
+description: Production-grade Anadolu Air Flight System Helm Chart
+
+type: application
+
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - microservices
+  - spring-boot
+  - kafka
+  - flight-booking
+  - airline
+
+home: https://github.com/anadolu-flight-system
+
+maintainers:
+  - name: Anadolu Air Development Team
+    email: dev@anadolu-flight-system.com
+
+dependencies:
+  # Bitnami Redis
+  - name: redis
+    version: "18.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+
+  # Bitnami Kafka
+  - name: kafka
+    version: "26.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+
+  # Bitnami PostgreSQL
+  - name: postgresql
+    version: "13.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+
+annotations:
+  category: FlightManagement
+  licenses: MIT

@@ -1,0 +1,83 @@
+# Skaffold configuration for local Kubernetes development
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: anadolu-flight-system
+
+# Build configuration
+build:
+  artifacts:
+    - image: anadolu-flight-system/api-gateway
+      context: api-gateway
+      docker:
+        dockerfile: Dockerfile
+    - image: anadolu-flight-system/booking-service
+      context: booking-service
+      docker:
+        dockerfile: Dockerfile
+    - image: anadolu-flight-system/flight-ops-service
+      context: flight-ops-service
+      docker:
+        dockerfile: Dockerfile
+    - image: anadolu-flight-system/integration-service
+      context: integration-service
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false
+    useBuildkit: true
+
+# Deploy profiles
+profiles:
+  # Development profile - use Helm with dev values
+  - name: dev
+    activation:
+      - kubeContext: minikube
+      - kubeContext: docker-desktop
+      - kubeContext: kind-.*
+    deploy:
+      helm:
+        releases:
+          - name: anadolu-flight-system
+            chartPath: k8s/helm/anadolu-flight-system
+            valuesFiles:
+              - k8s/helm/anadolu-flight-system/values-dev.yaml
+            namespace: anadolu-flight-system
+            createNamespace: true
+            wait: true
+
+  # Production profile
+  - name: prod
+    deploy:
+      helm:
+        releases:
+          - name: anadolu-flight-system
+            chartPath: k8s/helm/anadolu-flight-system
+            valuesFiles:
+              - k8s/helm/anadolu-flight-system/values-prod.yaml
+            namespace: anadolu-flight-system
+            createNamespace: true
+            wait: true
+
+# Port forwarding for local development
+portForward:
+  - resourceType: service
+    resourceName: api-gateway
+    namespace: anadolu-flight-system
+    port: 8080
+    localPort: 8080
+  - resourceType: service
+    resourceName: booking-service
+    namespace: anadolu-flight-system
+    port: 8083
+    localPort: 8083
+  - resourceType: service
+    resourceName: flight-ops-service
+    namespace: anadolu-flight-system
+    port: 8082
+    localPort: 8082
+  - resourceType: service
+    resourceName: zipkin
+    namespace: anadolu-flight-system
+    port: 9411
+    localPort: 9411

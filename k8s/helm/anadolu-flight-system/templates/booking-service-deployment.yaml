@@ -1,0 +1,119 @@
+{{- if .Values.bookingService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.bookingService.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.bookingService.name }}
+    app.kubernetes.io/component: backend
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.bookingService.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.bookingService.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.bookingService.name }}
+        app.kubernetes.io/component: backend
+        {{- include "anadolu-flight-system.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: {{ include "anadolu-flight-system.serviceAccountName" . }}
+      {{- include "anadolu-flight-system.podSecurityContext" . | nindent 6 }}
+      initContainers:
+        # Wait for Kafka to be ready
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-kafka 9092; do echo waiting for kafka; sleep 2; done']
+        # Wait for Redis to be ready
+        - name: wait-for-redis
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-redis-master 6379; do echo waiting for redis; sleep 2; done']
+      containers:
+        - name: {{ .Values.bookingService.name }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.bookingService.image.repository }}:{{ .Values.bookingService.image.tag }}"
+          imagePullPolicy: {{ .Values.bookingService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8083
+              protocol: TCP
+          env:
+            {{- include "anadolu-flight-system.commonEnv" . | nindent 12 }}
+            - name: SERVER_PORT
+              value: "8083"
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: anadolu-database-secrets
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: anadolu-database-secrets
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: anadolu-database-secrets
+                  key: SPRING_DATASOURCE_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: anadolu-common-config
+            - configMapRef:
+                name: booking-service-config
+          resources:
+            {{- toYaml .Values.bookingService.resources | nindent 12 }}
+          {{- include "anadolu-flight-system.containerSecurityContext" . | nindent 10 }}
+          {{- include "anadolu-flight-system.livenessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.readinessProbe" . | nindent 10 }}
+          {{- include "anadolu-flight-system.startupProbe" . | nindent 10 }}
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ .Values.bookingService.name }}
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ .Values.bookingService.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.bookingService.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.bookingService.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8083"
+spec:
+  type: {{ .Values.bookingService.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.bookingService.name }}
+  ports:
+    - name: http
+      port: {{ .Values.bookingService.service.port }}
+      targetPort: 8083
+      protocol: TCP
+{{- end }}

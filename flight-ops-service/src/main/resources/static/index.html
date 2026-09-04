@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anadolu Air Flight Status Board</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .header {
+            background: linear-gradient(90deg, #c41e3a 0%, #8b0000 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        .header span {
+            color: #ffd700;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+        }
+        .status-item {
+            text-align: center;
+        }
+        .status-item .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .status-item .label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+        }
+        .disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+        .board {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .board-header {
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .departures .board-header {
+            background: linear-gradient(90deg, #2196f3 0%, #1976d2 100%);
+        }
+        .arrivals .board-header {
+            background: linear-gradient(90deg, #4caf50 0%, #388e3c 100%);
+        }
+        .flight-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        .flight-table th {
+            background: rgba(0,0,0,0.3);
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .flight-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .flight-row {
+            transition: background 0.3s;
+        }
+        .flight-row:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .flight-row.updated {
+            animation: highlight 2s ease-out;
+        }
+        @keyframes highlight {
+            0% { background: rgba(255, 215, 0, 0.3); }
+            100% { background: transparent; }
+        }
+        .flight-number {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status.SCHEDULED { background: #2196f3; }
+        .status.BOARDING { background: #ff9800; animation: pulse 1s infinite; }
+        .status.DEPARTED { background: #4caf50; }
+        .status.IN_FLIGHT { background: #9c27b0; }
+        .status.LANDED { background: #00bcd4; }
+        .status.ARRIVED { background: #4caf50; }
+        .status.DELAYED { background: #f44336; }
+        .status.CANCELLED { background: #9e9e9e; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .gate {
+            font-weight: bold;
+            color: #00bcd4;
+        }
+        .time {
+            font-family: 'Courier New', monospace;
+        }
+        .update-log {
+            margin-top: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .update-log h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        .log-entry {
+            padding: 8px;
+            border-left: 3px solid #ffd700;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+        }
+        .log-time {
+            color: #888;
+            font-size: 0.75rem;
+        }
+        @media (max-width: 1100px) {
+            .board-container {
+                grid-template-columns: 1fr;
+            }
+            .status-bar {
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+                letter-spacing: 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span>ANADOLU AIR</span> Flight Status Board</h1>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="number" id="totalDepartures">0</div>
+            <div class="label">DEPARTURES</div>
+        </div>
+        <div class="status-item">
+            <div class="number" id="totalArrivals">0</div>
+            <div class="label">ARRIVALS</div>
+        </div>
+        <div class="status-item">
+            <div class="number" id="delayedFlights">0</div>
+            <div class="label">DELAYED</div>
+        </div>
+        <div class="status-item">
+            <div class="number" id="onTimeRate">98%</div>
+            <div class="label">ON TIME</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="connectionStatus" class="connection-status disconnected">
+            Connecting to WebSocket...
+        </div>
+
+        <div class="board-container">
+            <div class="board departures">
+                <div class="board-header">
+                    Departures
+                </div>
+                <table class="flight-table">
+                    <thead>
+                        <tr>
+                            <th>Flight</th>
+                            <th>Destination</th>
+                            <th>Time</th>
+                            <th>Gate</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="departuresBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="board arrivals">
+                <div class="board-header">
+                    Arrivals
+                </div>
+                <table class="flight-table">
+                    <thead>
+                        <tr>
+                            <th>Flight</th>
+                            <th>Origin</th>
+                            <th>Time</th>
+                            <th>Gate</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arrivalsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="update-log">
+            <h3>Live Updates</h3>
+            <div id="logEntries"></div>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        const flights = new Map();
+        const HUB_AIRPORT = 'IST';
+
+        function connect() {
+            const socket = new SockJS('/ws-flight');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                updateConnectionStatus(true);
+
+                // Subscribe to all flight updates
+                stompClient.subscribe('/topic/flights', function(message) {
+                    const flight = JSON.parse(message.body);
+                    handleFlightUpdate(flight);
+                });
+
+                // Load initial data via REST
+                loadInitialFlights();
+
+            }, function(error) {
+                console.error('Connection error:', error);
+                updateConnectionStatus(false);
+                setTimeout(connect, 5000);
+            });
+        }
+
+        function updateConnectionStatus(connected) {
+            const el = document.getElementById('connectionStatus');
+            if (connected) {
+                el.className = 'connection-status connected';
+                el.textContent = 'Connected - Receiving live updates';
+            } else {
+                el.className = 'connection-status disconnected';
+                el.textContent = 'Disconnected - Reconnecting...';
+            }
+        }
+
+        function loadInitialFlights() {
+            fetch('/api/flights')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(flight => handleFlightUpdate(flight));
+                })
+                .catch(error => console.error('Error loading flights:', error));
+        }
+
+        function handleFlightUpdate(flight) {
+            flights.set(flight.flightNumber, flight);
+            updateFlightBoard();
+            addLogEntry(flight);
+        }
+
+        function updateFlightBoard() {
+            const departuresBody = document.getElementById('departuresBody');
+            const arrivalsBody = document.getElementById('arrivalsBody');
+
+            let departuresHtml = '';
+            let arrivalsHtml = '';
+            let departuresCount = 0;
+            let arrivalsCount = 0;
+            let delayedCount = 0;
+            let onTimeCount = 0;
+
+            flights.forEach((flight, flightNumber) => {
+                const origin = (flight.origin || '').toUpperCase();
+                const destination = (flight.destination || '').toUpperCase();
+                const isDeparture = origin === HUB_AIRPORT;
+                const isArrival = destination === HUB_AIRPORT;
+
+                if (flight.status === 'DELAYED') {
+                    delayedCount += 1;
+                }
+                if (!['DELAYED', 'CANCELLED'].includes(flight.status)) {
+                    onTimeCount += 1;
+                }
+
+                const departureRow = `
+                    <tr class="flight-row" id="flight-${flightNumber}">
+                        <td class="flight-number">${flightNumber}</td>
+                        <td>${flight.destination || '-'}</td>
+                        <td class="time">${formatTime(flight.estimatedDeparture || flight.scheduledDeparture)}</td>
+                        <td class="gate">${flight.gate || '-'}</td>
+                        <td><span class="status ${flight.status}">${flight.status}</span></td>
+                    </tr>
+                `;
+
+                const arrivalRow = `
+                    <tr class="flight-row" id="flight-${flightNumber}">
+                        <td class="flight-number">${flightNumber}</td>
+                        <td>${flight.origin || '-'}</td>
+                        <td class="time">${formatTime(flight.estimatedArrival || flight.scheduledArrival)}</td>
+                        <td class="gate">${flight.gate || '-'}</td>
+                        <td><span class="status ${flight.status}">${flight.status}</span></td>
+                    </tr>
+                `;
+
+                if (isDeparture && !isArrival) {
+                    departuresHtml += departureRow;
+                    departuresCount += 1;
+                } else if (isArrival) {
+                    arrivalsHtml += arrivalRow;
+                    arrivalsCount += 1;
+                } else if (['SCHEDULED', 'BOARDING', 'DEPARTED', 'DELAYED'].includes(flight.status)) {
+                    departuresHtml += departureRow;
+                    departuresCount += 1;
+                } else {
+                    arrivalsHtml += arrivalRow;
+                    arrivalsCount += 1;
+                }
+            });
+
+            departuresBody.innerHTML = departuresHtml;
+            arrivalsBody.innerHTML = arrivalsHtml;
+            document.getElementById('totalDepartures').textContent = departuresCount;
+            document.getElementById('totalArrivals').textContent = arrivalsCount;
+            document.getElementById('delayedFlights').textContent = delayedCount;
+
+            const totalFlights = departuresCount + arrivalsCount;
+            const onTimeRate = totalFlights > 0
+                ? Math.round((onTimeCount / totalFlights) * 100)
+                : 0;
+            document.getElementById('onTimeRate').textContent = `${onTimeRate}%`;
+        }
+
+        function addLogEntry(flight) {
+            const logEntries = document.getElementById('logEntries');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${new Date().toLocaleTimeString()}</span>
+                <strong>${flight.flightNumber}</strong> →
+                <span class="status ${flight.status}">${flight.status}</span>
+                ${flight.gate ? ` Gate: ${flight.gate}` : ''}
+            `;
+            logEntries.insertBefore(entry, logEntries.firstChild);
+
+            // Keep only last 10 entries
+            while (logEntries.children.length > 10) {
+                logEntries.removeChild(logEntries.lastChild);
+            }
+        }
+
+        function formatTime(dateTime) {
+            if (!dateTime) return '--:--';
+            const date = new Date(dateTime);
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        // Connect when page loads
+        connect();
+    </script>
+</body>
+</html>

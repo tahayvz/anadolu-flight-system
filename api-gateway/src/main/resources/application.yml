@@ -1,0 +1,247 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  # Redis for Rate Limiting
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  cloud:
+    gateway:
+      # Global CORS configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            exposedHeaders:
+              - "X-Correlation-ID"
+              - "X-Response-Time"
+            allowCredentials: true
+
+      # Default filters applied to all routes
+      default-filters:
+        - name: RequestSize
+          args:
+            maxSize: 5MB
+        - AddResponseHeader=X-Gateway-Version, 1.0.0
+
+      # Route definitions
+      routes:
+        # Booking Service Routes
+        - id: booking-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/bookings/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: bookingCircuitBreaker
+                fallbackUri: forward:/fallback/bookings
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE
+                methods: GET
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 500ms
+                  factor: 2
+                  basedOnPreviousValue: false
+
+        # Flight Ops Service Routes
+        - id: flight-ops-service
+          uri: ${FLIGHT_OPS_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/flights/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: flightOpsCircuitBreaker
+                fallbackUri: forward:/fallback/flights
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # Flight WebSocket Route
+        - id: flight-websocket
+          uri: ${FLIGHT_OPS_WS_URL:ws://localhost:8082}
+          predicates:
+            - Path=/ws/flights/**
+
+        # Integration Service Routes
+        - id: integration-service
+          uri: ${INTEGRATION_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/integration/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: integrationCircuitBreaker
+                fallbackUri: forward:/fallback/integration
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@apiKeyResolver}"
+
+        # Swagger/OpenAPI aggregation
+        - id: booking-swagger
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/swagger/booking/**
+          filters:
+            - RewritePath=/swagger/booking/(?<path>.*), /$\{path}
+
+        - id: flight-ops-swagger
+          uri: ${FLIGHT_OPS_URL:http://localhost:8082}
+          predicates:
+            - Path=/swagger/flights/**
+          filters:
+            - RewritePath=/swagger/flights/(?<path>.*), /$\{path}
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        slowCallRateThreshold: 80
+    instances:
+      bookingCircuitBreaker:
+        baseConfig: default
+      flightOpsCircuitBreaker:
+        baseConfig: default
+        slidingWindowSize: 20
+        failureRateThreshold: 40
+      integrationCircuitBreaker:
+        baseConfig: default
+        waitDurationInOpenState: 30s
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+    instances:
+      bookingCircuitBreaker:
+        timeoutDuration: 10s
+      flightOpsCircuitBreaker:
+        timeoutDuration: 5s
+      integrationCircuitBreaker:
+        timeoutDuration: 30s
+
+# Actuator & Metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    io.github.resilience4j: DEBUG
+    com.anadoluair.flight.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:-},%X{spanId:-}] [${spring.application.name}] %5p %c{1} - %m%n"
+
+---
+# Docker profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+  data:
+    redis:
+      host: redis
+      port: 6379
+  cloud:
+    gateway:
+      routes:
+        - id: booking-service
+          uri: http://booking-service:8083
+          predicates:
+            - Path=/api/bookings/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: bookingCircuitBreaker
+                fallbackUri: forward:/fallback/bookings
+
+        - id: flight-ops-service
+          uri: http://flight-ops-service:8082
+          predicates:
+            - Path=/api/flights/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: flightOpsCircuitBreaker
+                fallbackUri: forward:/fallback/flights
+
+        - id: flight-websocket
+          uri: ws://flight-ops-service:8082
+          predicates:
+            - Path=/ws/flights/**
+
+        - id: integration-service
+          uri: http://integration-service:8081
+          predicates:
+            - Path=/api/integration/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: integrationCircuitBreaker
+                fallbackUri: forward:/fallback/integration
+
+management:
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

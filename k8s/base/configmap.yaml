@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anadolu-common-config
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/part-of: anadolu-flight-system
+data:
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.anadolu-flight-system.svc.cluster.local:9092"
+
+  # Redis Configuration
+  REDIS_HOST: "redis.anadolu-flight-system.svc.cluster.local"
+  REDIS_PORT: "6379"
+
+  # Zipkin Configuration
+  ZIPKIN_URL: "http://zipkin.anadolu-flight-system.svc.cluster.local:9411/api/v2/spans"
+
+  # Service URLs (internal cluster DNS)
+  BOOKING_SERVICE_URL: "http://booking-service.anadolu-flight-system.svc.cluster.local:8083"
+  FLIGHT_OPS_URL: "http://flight-ops-service.anadolu-flight-system.svc.cluster.local:8082"
+  INTEGRATION_SERVICE_URL: "http://integration-service.anadolu-flight-system.svc.cluster.local:8081"
+
+  # Spring Profiles
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+
+  # JVM Options (optimized for containers)
+  JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/part-of: anadolu-flight-system
+data:
+  # Rate Limiting
+  RATE_LIMIT_REPLENISH_RATE: "100"
+  RATE_LIMIT_BURST_CAPACITY: "200"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: booking-service-config
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: booking-service
+    app.kubernetes.io/part-of: anadolu-flight-system
+data:
+  # Booking Rules
+  BOOKING_MAX_PASSENGERS: "9"
+  BOOKING_CHECKIN_OPEN_HOURS: "24"
+  BOOKING_CHECKIN_CLOSE_HOURS: "1"
+
+  # Cache TTL (in milliseconds)
+  CACHE_BOOKINGS_TTL: "300000"
+  CACHE_FLIGHTS_TTL: "900000"
+  CACHE_SEATMAPS_TTL: "30000"

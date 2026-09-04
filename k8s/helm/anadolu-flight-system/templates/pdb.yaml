@@ -1,0 +1,63 @@
+{{- if .Values.apiGateway.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.apiGateway.name }}-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.apiGateway.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.apiGateway.name }}
+{{- end }}
+---
+{{- if .Values.bookingService.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.bookingService.name }}-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.bookingService.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.bookingService.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.bookingService.name }}
+{{- end }}
+---
+{{- if .Values.flightOpsService.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.flightOpsService.name }}-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.flightOpsService.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.flightOpsService.name }}
+{{- end }}
+---
+{{- if .Values.integrationService.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.integrationService.name }}-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.integrationService.name }}
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.integrationService.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.integrationService.name }}
+{{- end }}

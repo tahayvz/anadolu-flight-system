@@ -1,0 +1,369 @@
+# Anadolu Air Flight System Helm Chart Values
+# Default values for production deployment
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+  # Common labels
+  labels:
+    app.kubernetes.io/part-of: anadolu-flight-system
+    app.kubernetes.io/managed-by: helm
+
+# Namespace
+namespace: anadolu-flight-system
+
+# ============================================
+# API Gateway Configuration
+# ============================================
+apiGateway:
+  enabled: true
+  name: api-gateway
+
+  replicaCount: 2
+
+  image:
+    repository: anadolu-flight-system/api-gateway
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # Rate limiting
+  rateLimiting:
+    replenishRate: 100
+    burstCapacity: 200
+
+# ============================================
+# Booking Service Configuration
+# ============================================
+bookingService:
+  enabled: true
+  name: booking-service
+
+  replicaCount: 3
+
+  image:
+    repository: anadolu-flight-system/booking-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8083
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "768Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  # Booking rules
+  rules:
+    maxPassengers: 9
+    checkinOpenHours: 24
+    checkinCloseHours: 1
+    infantRequiresAdult: true
+    maxInfantsPerAdult: 1
+
+  # Cache TTL (in seconds)
+  cache:
+    bookingsTtl: 300
+    flightsTtl: 900
+    seatMapsTtl: 30
+
+# ============================================
+# Flight Ops Service Configuration
+# ============================================
+flightOpsService:
+  enabled: true
+  name: flight-ops-service
+
+  replicaCount: 2
+
+  image:
+    repository: anadolu-flight-system/flight-ops-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8082
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# ============================================
+# Integration Service Configuration
+# ============================================
+integrationService:
+  enabled: true
+  name: integration-service
+
+  replicaCount: 2
+
+  image:
+    repository: anadolu-flight-system/integration-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8081
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# ============================================
+# Ingress Configuration
+# ============================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+  hosts:
+    - host: api.anadolu-flight-system.com
+      paths:
+        - path: /api/
+          pathType: Prefix
+          service: api-gateway
+          port: 8080
+
+    - host: flights.anadolu-flight-system.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: flight-ops-service
+          port: 8082
+
+  tls:
+    - secretName: anadolu-flight-system-tls
+      hosts:
+        - api.anadolu-flight-system.com
+        - flights.anadolu-flight-system.com
+
+# ============================================
+# Infrastructure Dependencies
+# ============================================
+
+# Redis Configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+
+# Kafka Configuration
+kafka:
+  enabled: true
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  zookeeper:
+    replicaCount: 3
+    persistence:
+      enabled: true
+      size: 8Gi
+
+# PostgreSQL Configuration
+postgresql:
+  enabled: true
+  auth:
+    database: thyflightdb
+    username: thyapp
+    existingSecret: anadolu-database-secrets
+  primary:
+    persistence:
+      enabled: true
+      size: 50Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+
+# ============================================
+# Monitoring Configuration
+# ============================================
+monitoring:
+  enabled: true
+
+  # Prometheus ServiceMonitor
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+  # Zipkin for distributed tracing
+  zipkin:
+    enabled: true
+    image:
+      repository: openzipkin/zipkin
+      tag: latest
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+
+# ============================================
+# Security Configuration
+# ============================================
+security:
+  # Pod Security Standards
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  # Network Policies
+  networkPolicy:
+    enabled: true
+
+  # Service Account
+  serviceAccount:
+    create: true
+    name: anadolu-service-account
+    annotations: {}
+
+# ============================================
+# Common Configuration
+# ============================================
+common:
+  # Spring profiles
+  springProfile: kubernetes
+
+  # JVM Options
+  javaOpts: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+  # Probes
+  probes:
+    liveness:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+    startup:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+
+  # Pod affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+
+  # Topology spread
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway

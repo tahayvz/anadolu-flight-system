@@ -1,0 +1,13 @@
+# Test profili — dis sistemlere baglanmadan baglam yuklenebilsin diye.
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    # SART: KafkaAdmin acilista topic olusturmayi dener, broker yoksa fetchMetadata
+    # zaman asimini bekler ve context yuklemesine ~40 saniye ekler.
+    admin:
+      auto-create: false
+      fail-fast: false
+    consumer:
+      auto-startup: false
+    listener:
+      auto-startup: false

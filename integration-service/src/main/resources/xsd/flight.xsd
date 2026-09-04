@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://anadoluair.example/flight/soap"
+           targetNamespace="http://anadoluair.example/flight/soap"
+           elementFormDefault="qualified">
+
+    <!-- ==================== Flight Search Request/Response ==================== -->
+
+    <xs:element name="SearchFlightsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="origin" type="tns:AirportCode"/>
+                <xs:element name="destination" type="tns:AirportCode"/>
+                <xs:element name="departureDate" type="xs:date"/>
+                <xs:element name="returnDate" type="xs:date" minOccurs="0"/>
+                <xs:element name="passengerCount" type="xs:int"/>
+                <xs:element name="cabinClass" type="tns:CabinClass" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="SearchFlightsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flights" type="tns:Flight" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="totalResults" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ==================== Flight Status Request/Response ==================== -->
+
+    <xs:element name="GetFlightStatusRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flightNumber" type="tns:FlightNumber"/>
+                <xs:element name="flightDate" type="xs:date"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetFlightStatusResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flight" type="tns:Flight"/>
+                <xs:element name="status" type="tns:FlightStatus"/>
+                <xs:element name="gate" type="xs:string" minOccurs="0"/>
+                <xs:element name="terminal" type="xs:string" minOccurs="0"/>
+                <xs:element name="estimatedDeparture" type="xs:dateTime" minOccurs="0"/>
+                <xs:element name="estimatedArrival" type="xs:dateTime" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ==================== Booking Request/Response ==================== -->
+
+    <xs:element name="CreateBookingRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="flightNumber" type="tns:FlightNumber"/>
+                <xs:element name="flightDate" type="xs:date"/>
+                <xs:element name="passengers" type="tns:Passenger" maxOccurs="9"/>
+                <xs:element name="contactEmail" type="xs:string"/>
+                <xs:element name="contactPhone" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="CreateBookingResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="bookingReference" type="xs:string"/>
+                <xs:element name="status" type="tns:BookingStatus"/>
+                <xs:element name="totalAmount" type="xs:decimal"/>
+                <xs:element name="currency" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ==================== Complex Types ==================== -->
+
+    <xs:complexType name="Flight">
+        <xs:sequence>
+            <xs:element name="flightNumber" type="tns:FlightNumber"/>
+            <xs:element name="airline" type="xs:string"/>
+            <xs:element name="origin" type="tns:AirportCode"/>
+            <xs:element name="destination" type="tns:AirportCode"/>
+            <xs:element name="scheduledDeparture" type="xs:dateTime"/>
+            <xs:element name="scheduledArrival" type="xs:dateTime"/>
+            <xs:element name="aircraft" type="xs:string" minOccurs="0"/>
+            <xs:element name="price" type="xs:decimal" minOccurs="0"/>
+            <xs:element name="currency" type="xs:string" minOccurs="0"/>
+            <xs:element name="availableSeats" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Passenger">
+        <xs:sequence>
+            <xs:element name="firstName" type="xs:string"/>
+            <xs:element name="lastName" type="xs:string"/>
+            <xs:element name="dateOfBirth" type="xs:date"/>
+            <xs:element name="passengerType" type="tns:PassengerType"/>
+            <xs:element name="nationality" type="xs:string" minOccurs="0"/>
+            <xs:element name="passportNumber" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==================== Simple Types (Enums) ==================== -->
+
+    <xs:simpleType name="AirportCode">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlightNumber">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{2}[0-9]{1,4}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlightStatus">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SCHEDULED"/>
+            <xs:enumeration value="BOARDING"/>
+            <xs:enumeration value="DEPARTED"/>
+            <xs:enumeration value="IN_FLIGHT"/>
+            <xs:enumeration value="LANDED"/>
+            <xs:enumeration value="ARRIVED"/>
+            <xs:enumeration value="DELAYED"/>
+            <xs:enumeration value="CANCELLED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="BookingStatus">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PENDING"/>
+            <xs:enumeration value="CONFIRMED"/>
+            <xs:enumeration value="TICKETED"/>
+            <xs:enumeration value="CANCELLED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CabinClass">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ECONOMY"/>
+            <xs:enumeration value="PREMIUM_ECONOMY"/>
+            <xs:enumeration value="BUSINESS"/>
+            <xs:enumeration value="FIRST"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PassengerType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ADULT"/>
+            <xs:enumeration value="CHILD"/>
+            <xs:enumeration value="INFANT"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

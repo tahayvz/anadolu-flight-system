@@ -1,0 +1,119 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anadolu-flight-system-ingress
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: anadolu-flight-system-ingress
+    app.kubernetes.io/part-of: anadolu-flight-system
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # WebSocket support for flight-ops-service
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+
+    # CORS configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://anadoluair.example,https://www.turkishairlines.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-API-Key,X-Correlation-ID"
+
+    # Health checks
+    nginx.ingress.kubernetes.io/healthcheck-path: "/actuator/health"
+
+    # Certificate (cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.anadolu-flight-system.com
+        - flights.anadolu-flight-system.com
+      secretName: anadolu-flight-system-tls
+  rules:
+    # Main API Gateway entry point
+    - host: api.anadolu-flight-system.com
+      http:
+        paths:
+          # All API traffic goes through API Gateway
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+
+          # Health/Actuator endpoints
+          - path: /actuator/
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+
+    # WebSocket for real-time flight updates
+    - host: flights.anadolu-flight-system.com
+      http:
+        paths:
+          - path: /ws/
+            pathType: Prefix
+            backend:
+              service:
+                name: flight-ops-service
+                port:
+                  number: 8082
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flight-ops-service
+                port:
+                  number: 8082
+
+---
+# Internal Ingress for SOAP/Legacy systems (if needed)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anadolu-integration-ingress
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: anadolu-integration-ingress
+    app.kubernetes.io/part-of: anadolu-flight-system
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    # Larger body size for SOAP/XML payloads
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - soap.anadolu-flight-system.com
+      secretName: anadolu-soap-tls
+  rules:
+    - host: soap.anadolu-flight-system.com
+      http:
+        paths:
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: integration-service
+                port:
+                  number: 8081

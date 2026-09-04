@@ -1,0 +1,163 @@
+# Production Environment Values
+# High availability configuration for production
+
+# API Gateway - High availability
+apiGateway:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  podDisruptionBudget:
+    minAvailable: 2
+
+# Booking Service - Critical service, more replicas
+bookingService:
+  replicaCount: 5
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 30
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "4Gi"
+  podDisruptionBudget:
+    minAvailable: 3
+
+# Flight Ops Service
+flightOpsService:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+# Integration Service
+integrationService:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+# Production Ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WAF rules
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Block common attacks
+      if ($request_uri ~* "(eval|base64|localhost|127.0.0.1)") {
+        return 403;
+      }
+  tls:
+    - secretName: anadolu-flight-system-tls
+      hosts:
+        - api.anadolu-flight-system.com
+        - flights.anadolu-flight-system.com
+
+# Production Redis - Replicated
+redis:
+  architecture: replication
+  replica:
+    replicaCount: 2
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+
+# Production Kafka - Highly available
+kafka:
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 100Gi
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+  zookeeper:
+    replicaCount: 3
+    persistence:
+      enabled: true
+      size: 20Gi
+
+# Production PostgreSQL
+postgresql:
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "4000m"
+        memory: "4Gi"
+
+# Enable all security features
+security:
+  networkPolicy:
+    enabled: true
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+# Production spring profile
+common:
+  springProfile: kubernetes,prod
+  javaOpts: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError"
+
+  probes:
+    liveness:
+      initialDelaySeconds: 90
+      periodSeconds: 15
+      failureThreshold: 5
+    readiness:
+      initialDelaySeconds: 45
+      periodSeconds: 10
+      failureThreshold: 5

@@ -1,0 +1,54 @@
+spring:
+  # Redis DISLANMIYOR: SagaStateRepository ona zorunlu bagimli. Testler gercek bir
+  # Redis konteynerine baglanir (AbstractBookingTest), boylece saga durumu gercekten
+  # yazilip okunur. Dislamak, contexti hic ayaga kaldirmiyordu.
+
+  # Disable caching
+  cache:
+    type: none
+
+  # Use in-memory H2
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+
+  # Kafka testlerde mock'lanir. auto-create: false SART: KafkaAdmin acilista topic
+  # olusturmayi dener, localhost:9092'ye ulasamayinca fetchMetadata zaman asimini
+  # bekler ve her context yuklemesine ~40 saniye ekler. Testler gecer ama yavastir.
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      auto-create: false
+      fail-fast: false
+    consumer:
+      auto-startup: false
+    listener:
+      auto-startup: false
+
+# Disable Zipkin for tests
+management:
+  tracing:
+    enabled: false
+  zipkin:
+    tracing:
+      enabled: false
+
+# Resilience4j test settings
+resilience4j:
+  circuitbreaker:
+    instances:
+      flightOpsService:
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1
+        waitDurationInOpenState: 1s
+
+logging:
+  level:
+    com.anadoluair.flight: DEBUG

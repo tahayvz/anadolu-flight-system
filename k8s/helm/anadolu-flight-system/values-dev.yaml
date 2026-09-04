@@ -1,0 +1,97 @@
+# Development Environment Values
+# Override production defaults for local development
+
+# Reduce replicas for dev
+apiGateway:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+bookingService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+flightOpsService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+integrationService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# Disable TLS for dev
+ingress:
+  enabled: true
+  tls: []
+  hosts:
+    - host: localhost
+      paths:
+        - path: /api/
+          pathType: Prefix
+          service: api-gateway
+          port: 8080
+
+# Minimal infrastructure
+redis:
+  master:
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+
+kafka:
+  replicaCount: 1
+  persistence:
+    enabled: false
+  zookeeper:
+    replicaCount: 1
+    persistence:
+      enabled: false
+
+postgresql:
+  primary:
+    persistence:
+      enabled: false
+
+# Disable network policies for dev
+security:
+  networkPolicy:
+    enabled: false
+
+# Dev spring profile
+common:
+  springProfile: dev
+  javaOpts: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"

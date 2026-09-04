@@ -1,0 +1,262 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: booking-service
+
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # H2 Console (for development)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 1000ms
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+        # Reliability settings
+        acks: all
+        retries: 3
+        enable.idempotence: true
+    consumer:
+      group-id: booking-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.anadoluair.flight.events
+
+# Resilience4j Configuration
+resilience4j:
+  # Circuit Breaker
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        slowCallRateThreshold: 80
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      flightOpsService:
+        baseConfig: default
+        slidingWindowSize: 5
+        waitDurationInOpenState: 15s
+
+  # Retry Configuration
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+    instances:
+      flightOpsService:
+        baseConfig: default
+        maxAttempts: 3
+
+  # Bulkhead Configuration (Semaphore-based)
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 25
+        maxWaitDuration: 500ms
+    instances:
+      flightOpsService:
+        maxConcurrentCalls: 10
+
+  # Rate Limiter Configuration
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 500ms
+    instances:
+      flightOpsService:
+        limitForPeriod: 50
+
+  # Time Limiter Configuration
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+    instances:
+      flightOpsService:
+        timeoutDuration: 5s
+
+# Actuator & Prometheus Metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,circuitbreakers,retries,ratelimiters
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  # Distributed Tracing
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+# Logging with Trace Context
+logging:
+  level:
+    com.anadoluair.flight: DEBUG
+    org.springframework.kafka: INFO
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:-},%X{spanId:-}] [${spring.application.name}] %5p %c{1} - %m%n"
+
+# Flight Ops Service
+flight-ops:
+  base-url: ${FLIGHT_OPS_URL:http://localhost:8082}
+
+# Anadolu Air Booking Rules Configuration
+booking:
+  rules:
+    max-passengers: 9
+    checkin-open-hours: 24
+    checkin-close-hours: 1
+    min-booking-hours: 2
+    infant-requires-adult: true
+    max-infants-per-adult: 1
+    child-min-age: 2
+    child-max-age: 11
+    infant-max-age: 2
+
+---
+# Docker profile for containerized deployment
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  data:
+    redis:
+      host: redis
+      port: 6379
+  kafka:
+    bootstrap-servers: kafka:29092
+  h2:
+    console:
+      enabled: false
+
+management:
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+
+flight-ops:
+  base-url: http://flight-ops-service:8082
+
+---
+# Local profile - Cache disabled for debugging
+# Use this when developing locally: ./mvnw spring-boot:run -Dspring.profiles.active=local
+spring:
+  config:
+    activate:
+      on-profile: local
+  cache:
+    type: none  # Cache devre dışı - breakpoint'ler çalışır
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.anadoluair.flight: DEBUG
+    org.springframework.cache: DEBUG  # Cache log'larını gör
+
+---
+# Test profile
+spring:
+  config:
+    activate:
+      on-profile: test
+  cache:
+    type: none
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      flightOpsService:
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1

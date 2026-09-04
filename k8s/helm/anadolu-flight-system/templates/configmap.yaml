@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anadolu-common-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+data:
+  # Spring profiles
+  SPRING_PROFILES_ACTIVE: {{ .Values.common.springProfile | quote }}
+
+  # Kafka configuration
+  KAFKA_BOOTSTRAP_SERVERS: "{{ .Release.Name }}-kafka:9092"
+
+  # Redis configuration
+  REDIS_HOST: "{{ .Release.Name }}-redis-master"
+  REDIS_PORT: "6379"
+
+  # Zipkin configuration
+  ZIPKIN_URL: "http://zipkin:9411/api/v2/spans"
+
+  # Service URLs
+  FLIGHT_OPS_URL: "http://flight-ops-service:8082"
+  BOOKING_SERVICE_URL: "http://booking-service:8083"
+  INTEGRATION_SERVICE_URL: "http://integration-service:8081"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: booking-service-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+    app.kubernetes.io/name: booking-service
+data:
+  # Booking rules
+  BOOKING_MAX_PASSENGERS: {{ .Values.bookingService.rules.maxPassengers | quote }}
+  BOOKING_CHECKIN_OPEN_HOURS: {{ .Values.bookingService.rules.checkinOpenHours | quote }}
+  BOOKING_CHECKIN_CLOSE_HOURS: {{ .Values.bookingService.rules.checkinCloseHours | quote }}
+  BOOKING_INFANT_REQUIRES_ADULT: {{ .Values.bookingService.rules.infantRequiresAdult | quote }}
+  BOOKING_MAX_INFANTS_PER_ADULT: {{ .Values.bookingService.rules.maxInfantsPerAdult | quote }}
+
+  # Cache TTL (in seconds)
+  CACHE_BOOKINGS_TTL: {{ .Values.bookingService.cache.bookingsTtl | quote }}
+  CACHE_FLIGHTS_TTL: {{ .Values.bookingService.cache.flightsTtl | quote }}
+  CACHE_SEATMAPS_TTL: {{ .Values.bookingService.cache.seatMapsTtl | quote }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-gateway
+data:
+  # Rate limiting
+  RATE_LIMIT_REPLENISH_RATE: {{ .Values.apiGateway.rateLimiting.replenishRate | quote }}
+  RATE_LIMIT_BURST_CAPACITY: {{ .Values.apiGateway.rateLimiting.burstCapacity | quote }}
+
+  # Backend service URLs
+  BOOKING_SERVICE_URL: "http://booking-service:8083"
+  FLIGHT_OPS_SERVICE_URL: "http://flight-ops-service:8082"
+  INTEGRATION_SERVICE_URL: "http://integration-service:8081"

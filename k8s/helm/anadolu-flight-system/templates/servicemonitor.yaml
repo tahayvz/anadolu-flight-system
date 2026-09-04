@@ -1,0 +1,69 @@
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: anadolu-flight-system-monitor
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: anadolu-flight-system
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}
+---
+{{- if .Values.monitoring.zipkin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zipkin
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: zipkin
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zipkin
+  template:
+    metadata:
+      labels:
+        app: zipkin
+    spec:
+      containers:
+        - name: zipkin
+          image: "{{ .Values.monitoring.zipkin.image.repository }}:{{ .Values.monitoring.zipkin.image.tag }}"
+          ports:
+            - containerPort: 9411
+          resources:
+            {{- toYaml .Values.monitoring.zipkin.resources | nindent 12 }}
+          env:
+            - name: STORAGE_TYPE
+              value: mem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zipkin
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: zipkin
+    {{- include "anadolu-flight-system.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: zipkin
+  ports:
+    - port: 9411
+      targetPort: 9411
+{{- end }}

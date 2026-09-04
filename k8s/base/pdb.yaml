@@ -1,0 +1,64 @@
+# Pod Disruption Budget for API Gateway
+# Ensures high availability during voluntary disruptions (upgrades, node drains)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/part-of: anadolu-flight-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+
+---
+# Pod Disruption Budget for Booking Service
+# Critical service - always keep at least 2 pods running
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: booking-service-pdb
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: booking-service
+    app.kubernetes.io/part-of: anadolu-flight-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: booking-service
+
+---
+# Pod Disruption Budget for Flight Ops Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: flight-ops-service-pdb
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: flight-ops-service
+    app.kubernetes.io/part-of: anadolu-flight-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flight-ops-service
+
+---
+# Pod Disruption Budget for Integration Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: integration-service-pdb
+  namespace: anadolu-flight-system
+  labels:
+    app.kubernetes.io/name: integration-service
+    app.kubernetes.io/part-of: anadolu-flight-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: integration-service
