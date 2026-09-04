@@ -1,5 +1,11 @@
 # Anadolu Air Flight System
 
+[![CI](https://github.com/tahayvz/anadolu-flight-system/actions/workflows/ci.yml/badge.svg)](https://github.com/tahayvz/anadolu-flight-system/actions/workflows/ci.yml)
+[![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/17/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A microservices flight booking platform: reservations, flight operations, external feed
 integration and an API gateway, wired together with Kafka, a Saga orchestrator and Redis.
 
