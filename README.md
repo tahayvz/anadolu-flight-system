@@ -1030,9 +1030,6 @@ curl -X POST localhost:8084/api/assistant/ask \
   -H 'Content-Type: application/json' \
   -d '{"question": "ZZ123 rezervasyona açık mı?"}'
 
-# Ollama, if you run one locally
-curl ... -d '{"question": "...", "model": "ollama"}'
-
 # Gemini. The key travels in a header, never in the URL.
 curl -X POST localhost:8084/api/assistant/ask \
   -H 'Content-Type: application/json' \
@@ -1042,6 +1039,13 @@ curl -X POST localhost:8084/api/assistant/ask \
 
 `GET /api/assistant/models` lists the models and says which of them needs a key —
 the web client builds its model picker from that.
+
+A local Ollama provider was built and then removed. It ran, but small models call
+tools unreliably — they answer from nothing rather than asking for the data — and a
+provider that is sometimes confidently wrong is worse than one that is absent. It
+also asked every reader to install Ollama and pull several gigabytes before seeing
+anything. The stub covers "run it with no setup" better, and Gemini covers "see it
+work for real".
 
 Model names expire. `gemini-2.0-flash` was retired and the provider answered "no
 longer available", which is why the name is an environment variable
@@ -1082,7 +1086,7 @@ untraceable.
 | Suite | What it pins down |
 |---|---|
 | `AgentTest` | The loop feeds tool results back, stops at the turn limit, and survives unknown or failing tools. The model is scripted, so what is measured is the loop, not the model. |
-| `ModelResponseParsingTest` | Recorded Ollama and Gemini response bodies parse correctly — including the case where Gemini returns explanatory text *and* a function call, where treating the text as the answer would silently skip the tool. |
+| `ModelResponseParsingTest` | Recorded Gemini response bodies parse correctly — including the case where Gemini returns explanatory text *and* a function call, where treating the text as the answer would silently skip the tool. |
 | `AssistantControllerTest` | The service works with zero configuration, rejects unknown models, and never leaks the API key into the response. |
 
 

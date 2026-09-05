@@ -42,8 +42,7 @@ class AssistantControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == 'stub')].requiresApiKey").value(false))
                 .andExpect(jsonPath("$[?(@.name == 'stub')].isDefault").value(true))
-                .andExpect(jsonPath("$[?(@.name == 'gemini')].requiresApiKey").value(true))
-                .andExpect(jsonPath("$[?(@.name == 'ollama')].requiresApiKey").value(false));
+                .andExpect(jsonPath("$[?(@.name == 'gemini')].requiresApiKey").value(true));
     }
 
     @Test

@@ -194,8 +194,6 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       FLIGHT_OPS_URL: http://flight-ops-service:8082
       BOOKING_URL: http://booking-service:8083
-      # Ollama konteynerde degil, gelistiricinin makinesinde calisir.
-      OLLAMA_URL: http://host.docker.internal:11434
     networks:
       - anadolu-network
     restart: on-failure

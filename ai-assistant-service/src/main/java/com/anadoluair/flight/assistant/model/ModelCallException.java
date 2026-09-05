@@ -8,7 +8,7 @@ package com.anadoluair.flight.assistant.model;
  * "model bulunamadı". Bunu yutup 500 dönmek, kullanıcıyı karanlıkta bırakır ve
  * sorunu kendi kodunda aramaya iter.
  *
- * @param provider    hangi sağlayıcı ("gemini", "ollama")
+ * @param provider    hangi sağlayıcı ("gemini")
  * @param upstreamStatus sağlayıcının döndüğü HTTP kodu; bağlanılamadıysa 0
  * @param reason      sağlayıcının açıklaması
  */

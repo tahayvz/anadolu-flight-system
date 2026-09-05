@@ -28,56 +28,6 @@ class ModelResponseParsingTest {
     }
 
     @Nested
-    @DisplayName("Ollama")
-    class Ollama {
-
-        @Test
-        @DisplayName("Arac cagrisi iceren yanit ToolCall'a cevrilir")
-        void toolCall() throws Exception {
-            String body = """
-                {
-                  "message": {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [
-                      {"function": {"name": "flight_status", "arguments": {"flightNumber": "ZZ123"}}}
-                    ]
-                  }
-                }
-                """;
-
-            ModelReply reply = OllamaChatModel.parse(parseJson(body));
-
-            assertThat(reply.wantsTool()).isTrue();
-            assertThat(reply.toolCall().tool()).isEqualTo("flight_status");
-            assertThat(reply.toolCall().argument("flightNumber")).isEqualTo("ZZ123");
-        }
-
-        @Test
-        @DisplayName("Duz metin yaniti cevap olarak doner")
-        void plainText() throws Exception {
-            String body = """
-                {"message": {"role": "assistant", "content": "ZZ123 saat 10:00'da kalkiyor."}}
-                """;
-
-            ModelReply reply = OllamaChatModel.parse(parseJson(body));
-
-            assertThat(reply.wantsTool()).isFalse();
-            assertThat(reply.text()).isEqualTo("ZZ123 saat 10:00'da kalkiyor.");
-        }
-
-        @Test
-        @DisplayName("Bozuk yanitlarda cokmez")
-        void malformed() throws Exception {
-            assertThat(OllamaChatModel.parse(null).wantsTool()).isFalse();
-            assertThat(OllamaChatModel.parse(parseJson("{}")).wantsTool()).isFalse();
-            assertThat(OllamaChatModel.parse(parseJson("""
-                {"message": {"role": "assistant", "tool_calls": []}}
-                """)).wantsTool()).isFalse();
-        }
-    }
-
-    @Nested
     @DisplayName("Gemini")
     class Gemini {
 

@@ -51,7 +51,7 @@ class ModelFailureTest {
 
         @Bean
         ChatModel unreachableModel() {
-            return failing("ulasilamayan", 0, "Ollama'ya ulasilamadi. Calisiyor mu?");
+            return failing("ulasilamayan", 0, "Saglayiciya ulasilamadi: Connection refused");
         }
 
         private static ChatModel failing(String name, int status, String reason) {

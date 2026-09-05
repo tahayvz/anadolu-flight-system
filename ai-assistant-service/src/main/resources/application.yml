@@ -20,10 +20,6 @@ assistant:
   booking:
     base-url: ${BOOKING_URL:http://localhost:8083}
 
-  ollama:
-    base-url: ${OLLAMA_URL:http://localhost:11434}
-    model: ${OLLAMA_MODEL:qwen2.5:7b}
-
   gemini:
     base-url: https://generativelanguage.googleapis.com
     # Model adlari eskir. gemini-2.0-flash kullanimdan kalkti ve saglayici

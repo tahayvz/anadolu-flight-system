@@ -20,7 +20,7 @@ import java.util.List;
  */
 public interface ChatModel {
 
-    /** Ayarlarda ve API'de kullanılan ad: "stub", "ollama", "gemini". */
+    /** Ayarlarda ve API'de kullanılan ad: "stub", "gemini". */
     String name();
 
     /** Bu model çalışmak için kullanıcıdan API anahtarı ister mi? */
