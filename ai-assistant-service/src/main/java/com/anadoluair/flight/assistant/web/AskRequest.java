@@ -1,5 +1,6 @@
 package com.anadoluair.flight.assistant.web;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -30,10 +31,22 @@ public record AskRequest(
          * siniri degildir. Yetki denetimi hala token'a bakar, gecmise degil.
          */
         @Size(max = 20, message = "Gecmis en fazla 20 tur olabilir")
-        List<Turn> history) {
+        List<@Valid Turn> history) {
 
-    /** Sohbetteki tek bir tur. */
-    public record Turn(boolean fromUser, String text) {
+    /**
+     * Sohbetteki tek bir tur.
+     *
+     * <p>{@code text} uzunlugu sinirli. Onceden yalnizca {@code question} 500
+     * karaktere sinirliydi ve ayni veri {@code history} uzerinden sinirsizca
+     * gonderilebiliyordu -- yani soru icin konan kontrolun bir anlami kalmiyordu.
+     * Gecmis sunucuda tutulmuyor ama istek boyunca bellekte durur ve modele
+     * aktarilir.
+     */
+    public record Turn(
+            boolean fromUser,
+
+            @Size(max = 2000, message = "Gecmisteki bir tur en fazla 2000 karakter olabilir")
+            String text) {
     }
 
     public List<Turn> historyOrEmpty() {

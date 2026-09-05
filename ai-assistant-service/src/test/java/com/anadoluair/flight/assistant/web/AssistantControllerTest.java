@@ -81,6 +81,20 @@ class AssistantControllerTest {
     }
 
     @Test
+    @DisplayName("Gecmisteki tek bir tur da uzunluk siniri tasiyor")
+    void overlongHistoryTurnIsRejected() throws Exception {
+        // question 500 karaktere sinirli. Ayni veri history uzerinden sinirsizca
+        // gonderilebiliyorsa o sinirin bir anlami kalmaz.
+        String huge = "x".repeat(2001);
+
+        mockMvc.perform(post("/api/assistant/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AskRequest(
+                                "kisa soru", null, List.of(new AskRequest.Turn(true, huge))))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("Cok uzun gecmis reddedilir")
     void overlongHistoryIsRejected() throws Exception {
         // Gecmis istemciden gelir; sinirsiz birakmak istek boyutunu ve model

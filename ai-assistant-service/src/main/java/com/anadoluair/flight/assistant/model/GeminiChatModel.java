@@ -4,6 +4,8 @@ import com.anadoluair.flight.assistant.agent.Message;
 import com.anadoluair.flight.assistant.agent.ModelReply;
 import com.anadoluair.flight.assistant.agent.ToolCall;
 import com.anadoluair.flight.assistant.tool.ToolSpec;
+import org.springframework.boot.web.client.ClientHttpRequestFactories;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,10 +13,13 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Google Gemini'ye bağlanır. Ücretsiz katman için Google AI Studio'dan alınan
@@ -38,7 +43,16 @@ public class GeminiChatModel implements ChatModel {
     public GeminiChatModel(RestClient.Builder builder,
                            @Value("${assistant.gemini.base-url}") String baseUrl,
                            @Value("${assistant.gemini.model}") String model) {
-        this.client = builder.clone().baseUrl(baseUrl).build();
+        // Model cagrisi da zaman asimsizdi. Uc servisleri gibi burada da askida
+        // kalan bir cagri kullaniciyi cevapsiz birakir. Sure daha uzun: bir dil
+        // modeli bir REST ucundan yavastir.
+        this.client = builder.clone()
+                .baseUrl(baseUrl)
+                .requestFactory(ClientHttpRequestFactories.get(
+                        ClientHttpRequestFactorySettings.DEFAULTS
+                                .withConnectTimeout(Duration.ofSeconds(5))
+                                .withReadTimeout(Duration.ofSeconds(60))))
+                .build();
         this.model = model;
     }
 
@@ -139,7 +153,22 @@ public class GeminiChatModel implements ChatModel {
             }
         }
 
-        return ModelReply.answer(String.valueOf(parts.get(0).getOrDefault("text", "")));
+        // TUM metin parcalari birlestirilir.
+        //
+        // Once yalnizca parts.get(0) okunuyordu. Gemini cok parcali yanit
+        // dondugunde cevabin gerisi SESSIZCE dusuyordu: hata yok, log yok,
+        // kullanici modelin yarim konustugunu saniyordu. Ilk parca metin
+        // degilse (ornegin inlineData) balon tamamen bos cikiyordu.
+        //
+        // functionCall zaten tum parcalarda araniyor; metin de ayni sekilde
+        // okunmali.
+        String text = parts.stream()
+                .map(part -> part.get("text"))
+                .filter(Objects::nonNull)
+                .map(String::valueOf)
+                .collect(Collectors.joining());
+
+        return ModelReply.answer(text);
     }
 
     /**

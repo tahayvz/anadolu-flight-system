@@ -92,6 +92,40 @@ class ModelResponseParsingTest {
         }
 
         @Test
+        @DisplayName("Cok parcali metin yaniti BIRLESTIRILIR")
+        void multiPartTextIsJoined() throws Exception {
+            // Once yalnizca ilk parca okunuyordu. Gemini cevabi birden fazla
+            // parcaya bolerse gerisi sessizce dusuyordu -- hata yok, log yok,
+            // kullanici modelin yarim konustugunu saniyordu.
+            String body = """
+                {"candidates": [{"content": {"parts": [
+                  {"text": "Ucus bilgisi soyle: "},
+                  {"text": "ZZ1 rezervasyona acik, 42 koltuk bos."}
+                ]}}]}
+                """;
+
+            ModelReply reply = GeminiChatModel.parse(parseJson(body));
+
+            assertThat(reply.wantsTool()).isFalse();
+            assertThat(reply.text()).isEqualTo("Ucus bilgisi soyle: ZZ1 rezervasyona acik, 42 koltuk bos.");
+        }
+
+        @Test
+        @DisplayName("Ilk parca metin degilse metin yine de bulunur")
+        void textFoundEvenIfFirstPartIsNotText() throws Exception {
+            String body = """
+                {"candidates": [{"content": {"parts": [
+                  {"inlineData": {"mimeType": "image/png", "data": "abc"}},
+                  {"text": "ZZ1 rezervasyona acik."}
+                ]}}]}
+                """;
+
+            ModelReply reply = GeminiChatModel.parse(parseJson(body));
+
+            assertThat(reply.text()).isEqualTo("ZZ1 rezervasyona acik.");
+        }
+
+        @Test
         @DisplayName("Bos ve bozuk yanitlarda cokmez")
         void malformed() throws Exception {
             assertThat(GeminiChatModel.parse(null).wantsTool()).isFalse();
