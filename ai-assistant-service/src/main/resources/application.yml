@@ -26,7 +26,10 @@ assistant:
 
   gemini:
     base-url: https://generativelanguage.googleapis.com
-    model: ${GEMINI_MODEL:gemini-2.0-flash}
+    # Model adlari eskir. gemini-2.0-flash kullanimdan kalkti ve saglayici
+    # "no longer available" dedi. Bu yuzden ad ortam degiskeniyle degistirilebilir:
+    # yeni bir surum ciktiginda kod degistirmek gerekmez.
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
 
 management:
   endpoints:

@@ -73,8 +73,10 @@ public class GeminiChatModel implements ChatModel {
         } catch (RestClientResponseException e) {
             // Gemini hatayi govdede aciklar: "API key not valid", "quota exceeded"...
             // Bunu yutmak, kullanicinin sorunu kendi kodunda aramasina yol acar.
+            // Hangi modelin denendigi mesaja giriyor: "model artik yok" turu
+            // hatalarda hangi adin gecersiz oldugunu bilmeden duzeltilemez.
             throw new ModelCallException(name(), e.getStatusCode().value(),
-                    extractError(e.getResponseBodyAsString()), e);
+                    "[%s] %s".formatted(model, extractError(e.getResponseBodyAsString())), e);
         } catch (ResourceAccessException e) {
             throw new ModelCallException(name(), 0, "Gemini'ye ulasilamadi: " + e.getMessage(), e);
         }

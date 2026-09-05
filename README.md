@@ -1043,6 +1043,19 @@ curl -X POST localhost:8084/api/assistant/ask \
 `GET /api/assistant/models` lists the models and says which of them needs a key —
 the web client builds its model picker from that.
 
+Model names expire. `gemini-2.0-flash` was retired and the provider answered "no
+longer available", which is why the name is an environment variable
+(`GEMINI_MODEL`) rather than a constant: a new release should not require a code
+change. The failure is also legible now — the provider's own words come back with
+the model name that was tried:
+
+```json
+{ "status": 400, "detail": "[gemini-3.6-flash] API key not valid...", "provider": "gemini" }
+```
+
+Before that, every provider failure surfaced as a bare 500, which points the user
+at our service when the problem is a key or a retired model.
+
 ### What the code is careful about
 
 **The key is never written down.** It arrives in a header rather than a query
