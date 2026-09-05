@@ -13,12 +13,18 @@ package com.anadoluair.flight.assistant.agent;
 public record Message(Role role, String text, String tool) {
 
     public enum Role {
+        /** Modele en baştan verilen kurallar. Kullanıcıdan gelmez, biz yazarız. */
+        SYSTEM,
         /** Kullanıcının sorusu. */
         USER,
         /** Modelin cevabı ya da "şu aracı çağır" isteği. */
         ASSISTANT,
         /** Bir aracın döndürdüğü sonuç. Modele geri beslenir. */
         TOOL
+    }
+
+    public static Message system(String text) {
+        return new Message(Role.SYSTEM, text, null);
     }
 
     public static Message user(String text) {

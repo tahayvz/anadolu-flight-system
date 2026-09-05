@@ -58,9 +58,7 @@ public class GeminiChatModel implements ChatModel {
             return ModelReply.answer("Gemini icin API anahtari gerekiyor. Anahtari istekle birlikte gonder.");
         }
 
-        Map<String, Object> body = Map.of(
-                "contents", toGeminiContents(conversation),
-                "tools", List.of(Map.of("functionDeclarations", toFunctionDeclarations(tools))));
+        Map<String, Object> body = buildRequestBody(conversation, tools);
 
         Map<?, ?> response;
         try {
@@ -144,9 +142,38 @@ public class GeminiChatModel implements ChatModel {
         return ModelReply.answer(String.valueOf(parts.get(0).getOrDefault("text", "")));
     }
 
-    private List<Map<String, Object>> toGeminiContents(List<Message> conversation) {
+    /**
+     * İstek gövdesini kurar.
+     *
+     * <p>Ağ çağrısı içermeyen saf metot: gövdenin doğru kurulduğu testle sabitlenir.
+     */
+    static Map<String, Object> buildRequestBody(List<Message> conversation, List<ToolSpec> tools) {
+        Map<String, Object> body = new LinkedHashMap<>();
+
+        // Sistem talimati AYRI bir alandir, siradan bir mesaj degil. Konusmanin
+        // icine sikistirilirsa model onu kullanicinin soyledigi bir sey sanar ve
+        // sonraki turlarda agirligini kaybeder.
+        String instruction = conversation.stream()
+                .filter(message -> message.role() == Message.Role.SYSTEM)
+                .map(Message::text)
+                .findFirst()
+                .orElse(null);
+        if (instruction != null) {
+            body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", instruction))));
+        }
+
+        body.put("contents", toGeminiContents(conversation));
+        body.put("tools", List.of(Map.of("functionDeclarations", toFunctionDeclarations(tools))));
+        return body;
+    }
+
+    private static List<Map<String, Object>> toGeminiContents(List<Message> conversation) {
         List<Map<String, Object>> contents = new ArrayList<>();
         for (Message message : conversation) {
+            // Sistem talimati yukarida ayri alana kondu, burada tekrarlanmaz.
+            if (message.role() == Message.Role.SYSTEM) {
+                continue;
+            }
             // Gemini yalnizca "user" ve "model" rollerini bilir. Arac sonucunu
             // kullanicidan gelen bir bilgi gibi aktariyoruz; boylece model onu
             // cevabini kurarken kullanabiliyor.
@@ -159,7 +186,7 @@ public class GeminiChatModel implements ChatModel {
         return contents;
     }
 
-    private List<Map<String, Object>> toFunctionDeclarations(List<ToolSpec> tools) {
+    private static List<Map<String, Object>> toFunctionDeclarations(List<ToolSpec> tools) {
         List<Map<String, Object>> declarations = new ArrayList<>();
         for (ToolSpec tool : tools) {
             Map<String, Object> properties = new LinkedHashMap<>();

@@ -1067,6 +1067,34 @@ the model name that was tried:
 Before that, every provider failure surfaced as a bare 500, which points the user
 at our service when the problem is a key or a retired model.
 
+### The model needed telling who it was
+
+Asked about flights, Gemini answered with numbers like **TK1234**. TK is a real
+carrier's designator. Every trace of it had already been scrubbed from this
+repository — the trace was coming from the model's own training data, which knows
+that a Turkish airline context means TK.
+
+Nothing was instructing it otherwise. A model given no rules fills the gaps with
+its priors, and its priors are the real world. So the rules are now sent with every
+request, in
+[`AssistantInstruction`](ai-assistant-service/src/main/java/com/anadoluair/flight/assistant/agent/AssistantInstruction.java):
+the airline is fictional, flight numbers start with `ZZ`, never invent a time or a
+status — call a tool — and if the user gave no flight number, ask rather than guess.
+
+Two things follow from this that were not obvious:
+
+**Brand removal cannot be done in source alone.** Grep found nothing because there
+was nothing to find. The output still carried the brand.
+
+**The prompt is code.** It changes behaviour and it is reviewed like code, which is
+why it lives in a class rather than a string literal, and why tests assert its
+content. Delete the line about inventing data and the model starts inventing again
+— silently, and only visible by using it.
+
+It is sent in Gemini's `systemInstruction` field rather than as a message. Wedged
+into the conversation, a model treats it as something the user said, and its weight
+fades as the conversation grows.
+
 ### What the code is careful about
 
 **The key is never written down.** It arrives in a header rather than a query

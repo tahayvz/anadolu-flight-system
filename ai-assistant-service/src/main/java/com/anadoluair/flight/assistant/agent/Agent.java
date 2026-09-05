@@ -48,7 +48,11 @@ public class Agent {
      * @param history önceki turlar; modele bağlam olarak verilir, sonra yeni soru eklenir
      */
     public AgentResult ask(String question, List<Message> history, ChatModel model, String apiKey) {
-        List<Message> conversation = new ArrayList<>(history);
+        // Kurallar konusmanin BASINDA durur. Olmazsa model bilmedigi yerleri
+        // kendi varsayimiyla doldurur -- ucus numarasi uydurmasi bundandi.
+        List<Message> conversation = new ArrayList<>();
+        conversation.add(Message.system(AssistantInstruction.TEXT));
+        conversation.addAll(history);
         conversation.add(Message.user(question));
 
         List<AgentStep> steps = new ArrayList<>();
