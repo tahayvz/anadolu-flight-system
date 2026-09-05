@@ -6,7 +6,9 @@ import com.anadoluair.flight.assistant.agent.ToolCall;
 import com.anadoluair.flight.assistant.tool.ToolSpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,11 +53,21 @@ public class OllamaChatModel implements ChatModel {
                 "tools", toOllamaTools(tools),
                 "stream", false);
 
-        Map<?, ?> response = client.post()
-                .uri("/api/chat")
-                .body(body)
-                .retrieve()
-                .body(Map.class);
+        Map<?, ?> response;
+        try {
+            response = client.post()
+                    .uri("/api/chat")
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (RestClientResponseException e) {
+            throw new ModelCallException(name(), e.getStatusCode().value(),
+                    e.getResponseBodyAsString(), e);
+        } catch (ResourceAccessException e) {
+            // En sik sebep: Ollama makinede hic calismiyor.
+            throw new ModelCallException(name(), 0,
+                    "Ollama'ya ulasilamadi. Calisiyor mu? (" + e.getMessage() + ")", e);
+        }
 
         return parse(response);
     }

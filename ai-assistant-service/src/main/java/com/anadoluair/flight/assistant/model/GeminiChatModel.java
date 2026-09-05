@@ -6,7 +6,10 @@ import com.anadoluair.flight.assistant.agent.ToolCall;
 import com.anadoluair.flight.assistant.tool.ToolSpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -59,14 +62,46 @@ public class GeminiChatModel implements ChatModel {
                 "contents", toGeminiContents(conversation),
                 "tools", List.of(Map.of("functionDeclarations", toFunctionDeclarations(tools))));
 
-        Map<?, ?> response = client.post()
-                .uri("/v1beta/models/{model}:generateContent", model)
-                .header("x-goog-api-key", apiKey)
-                .body(body)
-                .retrieve()
-                .body(Map.class);
+        Map<?, ?> response;
+        try {
+            response = client.post()
+                    .uri("/v1beta/models/{model}:generateContent", model)
+                    .header("x-goog-api-key", apiKey)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (RestClientResponseException e) {
+            // Gemini hatayi govdede aciklar: "API key not valid", "quota exceeded"...
+            // Bunu yutmak, kullanicinin sorunu kendi kodunda aramasina yol acar.
+            throw new ModelCallException(name(), e.getStatusCode().value(),
+                    extractError(e.getResponseBodyAsString()), e);
+        } catch (ResourceAccessException e) {
+            throw new ModelCallException(name(), 0, "Gemini'ye ulasilamadi: " + e.getMessage(), e);
+        }
 
         return parse(response);
+    }
+
+    /**
+     * Gemini'nin hata gövdesinden okunabilir mesajı çıkarır.
+     *
+     * <p>Gövde {@code {"error": {"message": "..."}}} şeklindedir. Ham JSON'u
+     * kullanıcıya vermek yerine yalnızca mesajı alıyoruz.
+     */
+    private static String extractError(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "Saglayici bir aciklama dondurmedi.";
+        }
+        try {
+            Map<?, ?> parsed = new ObjectMapper().readValue(responseBody, Map.class);
+            Object error = parsed.get("error");
+            if (error instanceof Map<?, ?> errorMap && errorMap.get("message") != null) {
+                return String.valueOf(errorMap.get("message"));
+            }
+        } catch (Exception ignored) {
+            // Govde JSON degilse ham metne dusuyoruz.
+        }
+        return responseBody.length() > 300 ? responseBody.substring(0, 300) : responseBody;
     }
 
     /**
