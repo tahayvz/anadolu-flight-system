@@ -2,6 +2,7 @@ package com.anadoluair.flight.assistant.web;
 
 import com.anadoluair.flight.assistant.agent.Agent;
 import com.anadoluair.flight.assistant.agent.AgentResult;
+import com.anadoluair.flight.assistant.agent.Message;
 import com.anadoluair.flight.assistant.model.ChatModel;
 import com.anadoluair.flight.assistant.model.ChatModels;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,7 +64,13 @@ public class AssistantController {
         // Sorunun kendisi loglanmiyor: kullanici PNR gibi kisisel veri yazabilir.
         log.info("Asistan istegi alindi, model={}", model.name());
 
-        AgentResult result = agent.ask(request.question(), model, apiKey);
+        List<Message> history = request.historyOrEmpty().stream()
+                .map(turn -> turn.fromUser()
+                        ? Message.user(turn.text())
+                        : Message.assistant(turn.text()))
+                .toList();
+
+        AgentResult result = agent.ask(request.question(), history, model, apiKey);
         return ResponseEntity.ok(AskResponse.from(result, model.name()));
     }
 }

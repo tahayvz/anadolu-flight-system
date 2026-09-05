@@ -52,7 +52,7 @@ public class StubChatModel implements ChatModel {
             return ModelReply.answer(lastToolResult.text());
         }
 
-        String question = firstUserMessage(conversation).toUpperCase();
+        String question = lastUserMessage(conversation).toUpperCase();
 
         Matcher flight = FLIGHT_NUMBER.matcher(question);
         if (flight.find()) {
@@ -82,11 +82,18 @@ public class StubChatModel implements ChatModel {
         return null;
     }
 
-    private String firstUserMessage(List<Message> conversation) {
-        return conversation.stream()
-                .filter(message -> message.role() == Message.Role.USER)
-                .map(Message::text)
-                .findFirst()
-                .orElse("");
+    /**
+     * SON kullanıcı mesajı. İlk mesaj değil.
+     *
+     * <p>Sohbet geçmişi geldiğinde ilk mesaj konuşmanın en eskisidir; ona bakmak
+     * kullanıcının az önce sorduğu soruyu görmezden gelmek olur.
+     */
+    private String lastUserMessage(List<Message> conversation) {
+        for (int i = conversation.size() - 1; i >= 0; i--) {
+            if (conversation.get(i).role() == Message.Role.USER) {
+                return conversation.get(i).text();
+            }
+        }
+        return "";
     }
 }

@@ -1040,6 +1040,13 @@ curl -X POST localhost:8084/api/assistant/ask \
 `GET /api/assistant/models` lists the models and says which of them needs a key —
 the web client builds its model picker from that.
 
+The conversation lives in the client and is posted back with each question, so the
+service stays stateless. Keeping it server-side would mean sessions, and a service
+with sessions either pins requests to one instance or needs a shared session store —
+the same reason orders use JWTs. The cost is a larger request and a history the
+client can tamper with, which is why history is an *input* and not a security
+boundary: authorization still reads the token.
+
 A local Ollama provider was built and then removed. It ran, but small models call
 tools unreliably — they answer from nothing rather than asking for the data — and a
 provider that is sometimes confidently wrong is worse than one that is absent. It

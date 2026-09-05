@@ -41,7 +41,14 @@ public class Agent {
     }
 
     public AgentResult ask(String question, ChatModel model, String apiKey) {
-        List<Message> conversation = new ArrayList<>();
+        return ask(question, List.of(), model, apiKey);
+    }
+
+    /**
+     * @param history önceki turlar; modele bağlam olarak verilir, sonra yeni soru eklenir
+     */
+    public AgentResult ask(String question, List<Message> history, ChatModel model, String apiKey) {
+        List<Message> conversation = new ArrayList<>(history);
         conversation.add(Message.user(question));
 
         List<AgentStep> steps = new ArrayList<>();

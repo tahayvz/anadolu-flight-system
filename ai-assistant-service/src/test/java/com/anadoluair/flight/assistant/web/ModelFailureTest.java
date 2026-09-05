@@ -75,7 +75,7 @@ class ModelFailureTest {
     private MvcResult ask(String model) throws Exception {
         return mockMvc.perform(post("/api/assistant/ask")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", model))))
+                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", model, null))))
                 .andReturn();
     }
 
@@ -84,7 +84,7 @@ class ModelFailureTest {
     void invalidKeyIsTheCallersProblem() throws Exception {
         mockMvc.perform(post("/api/assistant/ask")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "reddeden"))))
+                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "reddeden", null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(
                         org.hamcrest.Matchers.containsString("API key not valid")))
@@ -97,7 +97,7 @@ class ModelFailureTest {
     void unreachableProviderIsNotTheCallersProblem() throws Exception {
         mockMvc.perform(post("/api/assistant/ask")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "ulasilamayan"))))
+                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "ulasilamayan", null))))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.detail").value(
                         org.hamcrest.Matchers.containsString("ulasilamadi")));
@@ -111,7 +111,7 @@ class ModelFailureTest {
         MvcResult result = mockMvc.perform(post("/api/assistant/ask")
                         .header(AssistantController.API_KEY_HEADER, secret)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "reddeden"))))
+                        .content(objectMapper.writeValueAsString(new AskRequest("ZZ1 nerede?", "reddeden", null))))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
